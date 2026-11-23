@@ -21,11 +21,16 @@ void main() {
     expect(items.first['e'], '🥛');
     expect((items.first['r'] as List).take(3), ['zítra', 'dnes', 'prošlo včera']);
     expect((items.first['c'] as List).length, 8);
+    expect(items.first['i'], 'b');
+    expect(items.first['m'], isFalse);
+    expect(data['takeLabel'], 'Beru');
+    expect(data['lang'], 'cs');
   });
 
   test('widget taps', () {
     expect(WidgetService.routeFor(Uri.parse('gleba://add')), '/add?mode=scan');
     expect(WidgetService.routeFor(Uri.parse('gleba://open')), '/');
+    expect(WidgetService.routeFor(Uri.parse('gleba://take-search')), '/take');
     expect(WidgetService.routeFor(null), '/');
   });
 }

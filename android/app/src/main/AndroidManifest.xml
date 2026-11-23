@@ -37,6 +37,13 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/gleba_widget_info" />
         </receiver>
 
+        <!-- Widget buttons that run Dart in the background (take / undo) -->
+        <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+        </receiver>
+
         <!-- flutter_local_notifications: scheduled notifications, reboot, actions -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">

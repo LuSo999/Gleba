@@ -246,5 +246,13 @@
   "inventoryReminder": "Inventory reminder",
   "inventoryReminderText": "A quick fridge check once a week",
   "weekday": "Day",
-  "widgetTitle": "Expiring soon"
+  "widgetTitle": "Expiring soon",
+  "widgetTaken": "✓ Taken: {name}",
+  "widgetTake": "Take",
+  "takeTitle": "Taking from the fridge",
+  "takeSearch": "What are you taking?",
+  "takeScan": "Scan code",
+  "takeOne": "−1",
+  "takeAll": "Take all",
+  "takeNotFound": "You don't have this in the fridge."
 }

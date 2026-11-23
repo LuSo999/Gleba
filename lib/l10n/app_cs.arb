@@ -401,5 +401,18 @@
   "inventoryReminder": "Připomínka inventury",
   "inventoryReminderText": "Jednou týdně rychle projet lednici",
   "weekday": "Den",
-  "widgetTitle": "Brzy projde"
+  "widgetTitle": "Brzy projde",
+  "widgetTaken": "✓ Vzato: {name}",
+  "@widgetTaken": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "widgetTake": "Beru",
+  "takeTitle": "Beru si z lednice",
+  "takeSearch": "Co si berete?",
+  "takeScan": "Naskenovat kód",
+  "takeOne": "−1",
+  "takeAll": "Vzít vše",
+  "takeNotFound": "Tohle v lednici nemáte."
 }

@@ -27,6 +27,10 @@ class WidgetService {
         {
           'n': i.name,
           'e': categoryById(i.categoryId).emoji,
+          'h': i.householdId ?? '',
+          'i': i.id,
+          // Several pieces → the widget button takes one ("−1"), otherwise all ("✓").
+          'm': i.unit == 'ks' && i.quantity > 1,
           'r': [for (var d = 0; d < _days; d++) relativeExpiry(l, i.expiryDate, today.add(Duration(days: d)))],
           'c': [
             for (var d = 0; d < _days; d++)
@@ -39,6 +43,9 @@ class WidgetService {
       'base': today.toIso8601String().substring(0, 10),
       'title': l.widgetTitle,
       'empty': l.nothingUrgent,
+      'takeLabel': l.widgetTake,
+      'undoLabel': l.undo,
+      'lang': l.localeName,
     };
   }
 
@@ -61,6 +68,10 @@ class WidgetService {
     }
   }
 
-  /// Where a tap on the widget should lead: '/add?mode=scan' for "+", else '/'.
-  static String routeFor(Uri? uri) => uri?.host == 'add' ? '/add?mode=scan' : '/';
+  /// Where a tap on the widget should lead.
+  static String routeFor(Uri? uri) => switch (uri?.host) {
+        'add' => '/add?mode=scan',
+        'take-search' => '/take',
+        _ => '/',
+      };
 }

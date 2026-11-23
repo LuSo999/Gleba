@@ -277,4 +277,33 @@ void main() {
     expect(find.text('2 z 13'), findsOneWidget);
     expect((await repo.watchActiveItems('home').first).length, 13);
   });
+
+  testWidgets('take screen: search and take one yogurt', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final auth = DemoAuthService();
+    final repo = DemoRepository();
+    await auth.signInWithGoogle();
+    final container = ProviderContainer(overrides: [
+      isDemoProvider.overrideWithValue(true),
+      authServiceProvider.overrideWithValue(auth),
+      repositoryProvider.overrideWithValue(repo),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const GlebaApp()));
+    await settle(tester);
+    container.read(routerProvider).push('/take');
+    await settle(tester);
+    await tester.enterText(find.byType(TextField), 'jogurt');
+    await settle(tester);
+    expect(find.text('Bílý jogurt'), findsOneWidget);
+    await tester.tap(find.text('−1'));
+    await settle(tester);
+    final yogurt = (await repo.watchActiveItems('home').first).firstWhere((i) => i.name == 'Bílý jogurt');
+    expect(yogurt.quantity, 2);
+    expect(find.text('Snězeno: Bílý jogurt (1 ks)'), findsOneWidget);
+  });
 }

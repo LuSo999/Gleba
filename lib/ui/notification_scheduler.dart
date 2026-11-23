@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../app.dart' show routerProvider;
+import '../app.dart' show rootNavigatorKey, routerProvider;
 import '../app_state.dart';
 import '../domain/models.dart';
 import '../services/notification_service.dart';
@@ -39,8 +39,20 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
     });
   }
 
-  void _openFromWidget(Uri? uri) {
+  Future<void> _openFromWidget(Uri? uri) async {
     if (uri == null || !mounted) return;
+    if (uri.host == 'item') {
+      // A row in the widget: show that item's sheet.
+      final hid = uri.queryParameters['h'], id = uri.queryParameters['i'];
+      if (hid == null || id == null) return;
+      await ref.read(userProvider.future);
+      final item = await ref.read(repositoryProvider).getItem(hid, id);
+      final ctx = rootNavigatorKey.currentContext;
+      if (item == null || item.status != ItemStatus.active || ctx == null || !ctx.mounted) return;
+      ref.read(activeHouseholdIdProvider.notifier).select(hid);
+      await showItemSheet(ctx, ref, item.withHousehold(hid));
+      return;
+    }
     final route = WidgetService.routeFor(uri);
     if (route != '/') ref.read(routerProvider).push(route);
   }
@@ -77,7 +89,7 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
       case 'eaten' || 'discarded':
         final how = a.action == 'eaten' ? ItemStatus.consumed : ItemStatus.discarded;
         ref.read(activeHouseholdIdProvider.notifier).select(hid);
-        final ctx = navigatorContext;
+        final ctx = rootNavigatorKey.currentContext;
         if (ctx != null && ctx.mounted) {
           await finishWithFanfare(ctx, ref, item, how);
         } else {

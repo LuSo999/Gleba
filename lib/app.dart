@@ -17,8 +17,13 @@ import 'ui/screens/notification_settings_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/shopping_screen.dart';
 import 'ui/screens/stats_screen.dart';
+import 'ui/screens/take_screen.dart';
 import 'ui/screens/sign_in_screen.dart';
 import 'ui/theme.dart';
+
+/// Navigator of the whole app, for dialogs and sheets opened from outside a
+/// screen (notification actions, widget taps).
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Re-evaluate redirects whenever sign-in state changes.
@@ -27,6 +32,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     refreshListenable: refresh,
     redirect: (context, state) {
       final auth = ref.read(userProvider);
@@ -50,6 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/inventory', builder: (_, s) => InventoryScreen(filter: s.uri.queryParameters['filter'])),
+      GoRoute(path: '/take', builder: (_, _) => const TakeScreen()),
       GoRoute(path: '/stats', builder: (_, _) => const StatsScreen()),
       GoRoute(path: '/shopping', builder: (_, _) => const ShoppingScreen()),
       GoRoute(path: '/receipt', builder: (_, _) => const ReceiptScreen()),

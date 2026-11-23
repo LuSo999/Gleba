@@ -29,6 +29,19 @@
             android:textSize="15sp"
             android:textStyle="bold" />
         <TextView
+            android:id="@+id/take"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/widget_chip_background"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="🍽"
+            android:textColor="#4A1A5C"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
             android:id="@+id/add"
             android:layout_width="32dp"
             android:layout_height="32dp"
@@ -38,6 +51,38 @@
             android:text="+"
             android:textColor="#FFFFFF"
             android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/lastRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/widget_chip_background"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="4dp"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/lastText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#1D1B20"
+            android:textSize="13sp" />
+        <TextView
+            android:id="@+id/undo"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:textColor="#6B2D8C"
+            android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 
@@ -54,6 +99,7 @@
         android:id="@+id/row1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
@@ -75,11 +121,22 @@
             android:maxLines="1"
             android:textSize="13sp"
             android:textStyle="bold" />
+        <TextView
+            android:id="@+id/take1"
+            android:layout_width="36dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_chip_background"
+            android:gravity="center"
+            android:textColor="#4A1A5C"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
         android:id="@+id/row2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
@@ -101,11 +158,22 @@
             android:maxLines="1"
             android:textSize="13sp"
             android:textStyle="bold" />
+        <TextView
+            android:id="@+id/take2"
+            android:layout_width="36dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_chip_background"
+            android:gravity="center"
+            android:textColor="#4A1A5C"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
         android:id="@+id/row3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
@@ -127,11 +195,22 @@
             android:maxLines="1"
             android:textSize="13sp"
             android:textStyle="bold" />
+        <TextView
+            android:id="@+id/take3"
+            android:layout_width="36dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_chip_background"
+            android:gravity="center"
+            android:textColor="#4A1A5C"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
         android:id="@+id/row4"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
@@ -153,11 +232,22 @@
             android:maxLines="1"
             android:textSize="13sp"
             android:textStyle="bold" />
+        <TextView
+            android:id="@+id/take4"
+            android:layout_width="36dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_chip_background"
+            android:gravity="center"
+            android:textColor="#4A1A5C"
+            android:textSize="13sp"
+            android:textStyle="bold" />
     </LinearLayout>
     <LinearLayout
         android:id="@+id/row5"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
@@ -177,6 +267,16 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:maxLines="1"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/take5"
+            android:layout_width="36dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_chip_background"
+            android:gravity="center"
+            android:textColor="#4A1A5C"
             android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>

@@ -13,6 +13,9 @@ import 'data/firebase_repository.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/push_service.dart';
+import 'services/widget_actions.dart';
+import 'services/widget_service.dart';
+import 'package:home_widget/home_widget.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +30,9 @@ Future<void> main() async {
     firebaseReady = true;
     if (NotificationService.supported) {
       FirebaseMessaging.onBackgroundMessage(firebaseBackgroundMessage);
+    }
+    if (WidgetService.supported) {
+      await HomeWidget.registerInteractivityCallback(widgetInteraction);
     }
   } catch (e) {
     debugPrint('Firebase not available, running in demo mode: $e');

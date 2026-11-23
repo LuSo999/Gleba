@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.view.View
 import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import java.time.LocalDate
@@ -23,6 +24,14 @@ class GlebaWidgetProvider : HomeWidgetProvider() {
   private val rows = intArrayOf(R.id.row1, R.id.row2, R.id.row3, R.id.row4, R.id.row5)
   private val names = intArrayOf(R.id.name1, R.id.name2, R.id.name3, R.id.name4, R.id.name5)
   private val whens = intArrayOf(R.id.when1, R.id.when2, R.id.when3, R.id.when4, R.id.when5)
+  private val takes = intArrayOf(R.id.take1, R.id.take2, R.id.take3, R.id.take4, R.id.take5)
+
+  private fun open(context: Context, uri: String) =
+      HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse(uri))
+
+  /** Runs Dart in the background (widgetInteraction in widget_actions.dart) without opening the app. */
+  private fun background(context: Context, uri: String) =
+      HomeWidgetBackgroundIntent.getBroadcast(context, Uri.parse(uri))
 
   override fun onUpdate(
       context: Context,
@@ -59,19 +68,28 @@ class GlebaWidgetProvider : HomeWidgetProvider() {
           views.setTextViewText(names[i], item.getString("e") + "  " + item.getString("n"))
           views.setTextViewText(whens[i], labels.getString(day))
           views.setTextColor(whens[i], colors.getLong(day).toInt())
+          val ref = "h=" + Uri.encode(item.getString("h")) + "&i=" + Uri.encode(item.getString("i"))
+          views.setTextViewText(takes[i], if (item.optBoolean("m")) "−1" else "✓")
+          views.setOnClickPendingIntent(takes[i], background(context, "gleba://take?$ref"))
+          views.setOnClickPendingIntent(rows[i], open(context, "gleba://item?$ref"))
         } else {
           views.setViewVisibility(rows[i], View.GONE)
         }
       }
 
-      views.setOnClickPendingIntent(
-          R.id.root,
-          HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse("gleba://open")),
-      )
-      views.setOnClickPendingIntent(
-          R.id.add,
-          HomeWidgetLaunchIntent.getActivity(context, MainActivity::class.java, Uri.parse("gleba://add")),
-      )
+      // Last action from the widget, with undo, for 15 minutes.
+      // Stored as a string: the plugin saves small Dart ints as Int, big ones as Long.
+      val lastAt = widgetData.getString("lastAt", null)?.toLongOrNull() ?: 0L
+      val showLast = lastAt > 0 && System.currentTimeMillis() - lastAt < 15 * 60 * 1000
+      views.setViewVisibility(R.id.lastRow, if (showLast) View.VISIBLE else View.GONE)
+      views.setTextViewText(R.id.lastText, widgetData.getString("lastText", ""))
+      views.setTextViewText(R.id.undo, widgetData.getString("undoLabel", "Undo"))
+      views.setOnClickPendingIntent(R.id.undo, background(context, "gleba://undo"))
+
+      views.setTextViewText(R.id.take, "🍽 " + widgetData.getString("takeLabel", "Take"))
+      views.setOnClickPendingIntent(R.id.root, open(context, "gleba://open"))
+      views.setOnClickPendingIntent(R.id.take, open(context, "gleba://take-search"))
+      views.setOnClickPendingIntent(R.id.add, open(context, "gleba://add"))
       appWidgetManager.updateAppWidget(id, views)
     }
   }
