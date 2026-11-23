@@ -12,3 +12,7 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Shared *debug* key (not secret) so every build has the same SHA-1 for Firebase/Google sign-in.
+# The release key must never be committed.
+!app/debug.keystore

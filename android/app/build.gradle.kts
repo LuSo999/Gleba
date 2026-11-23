@@ -31,6 +31,17 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Shared debug key committed to the repo, so local and CI builds all have
+        // the same SHA-1 (registered in Firebase for Google sign-in).
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

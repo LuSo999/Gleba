@@ -54,3 +54,9 @@ firestore.rules   bezpečnostní pravidla
 6. Pro přihlášení Googlem na Androidu přidejte do Firebase SHA-1 otisk podpisového klíče
    (`cd android && ./gradlew signingReport`).
 7. V `lib/config.dart` upravte `kWebAppUrl` na adresu z Firebase Hosting (kvůli odkazům v pozvánkách).
+
+### Podpis Android aplikace
+- `android/app/debug.keystore` je **sdílený ladicí klíč** (heslo `android`). Je v repozitáři záměrně, aby každé sestavení (lokálně i na GitHubu) mělo stejný otisk a fungovalo přihlášení Googlem. Otisky registrované ve Firebase:
+  - SHA-1 `27:0B:E0:D7:4E:F1:E0:02:4D:BC:CB:06:0E:8A:41:65:88:DD:8E:34`
+  - SHA-256 `28:A3:82:AB:C2:37:0C:CF:14:E2:EF:3D:54:56:AF:74:ED:B1:25:4F:C6:D3:CE:63:52:04:A4:55:6B:C9:48:FF`
+- Pro vydání na Google Play vytvoříme samostatný **produkční klíč**, který do repozitáře nikdy nepatří (GitHub Secrets).
