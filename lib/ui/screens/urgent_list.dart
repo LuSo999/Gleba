@@ -38,7 +38,7 @@ class UrgentList extends ConsumerWidget {
             return true;
           },
           child: ListTile(
-            onTap: () => showItemSheet(context, item),
+            onTap: () => showItemSheet(context, ref, item),
             leading: CircleAvatar(
               backgroundColor: color.withValues(alpha: 0.18),
               child: Text(categoryById(item.categoryId).emoji, style: const TextStyle(fontSize: 20)),

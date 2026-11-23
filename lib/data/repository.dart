@@ -1,3 +1,4 @@
+import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 
@@ -8,6 +9,9 @@ class GlebaUser {
   final String uid;
   final String? email;
   final String? displayName;
+
+  /// Short name shown in the household history.
+  String get shortName => displayName ?? email?.split('@').first ?? '';
 }
 
 abstract class AuthService {
@@ -43,12 +47,24 @@ abstract class GlebaRepository {
   Future<String> joinHousehold(String code, String uid);
 
   Stream<List<PantryItem>> watchActiveItems(String householdId);
-  Future<void> addItem(String householdId, PantryItem item, String uid);
-  Future<void> updateItem(String householdId, PantryItem item);
+  Future<void> addItem(String householdId, PantryItem item, GlebaUser by);
+
+  /// Saves a change; when [history] is given it is also logged.
+  Future<void> updateItem(String householdId, PantryItem item, {HistoryType? history, GlebaUser? by});
 
   /// Marks [quantity] (default: everything) of an item as eaten or thrown away
-  /// and records an event for statistics.
-  Future<void> finishItem(String householdId, PantryItem item, ItemStatus how, String uid, {double? quantity});
+  /// and records a history event. Returns the event id (needed for undo).
+  Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by, {double? quantity});
+
+  /// Undo right after [finishItem]: puts the item back exactly as it was and
+  /// removes the history event, so statistics stay correct.
+  Future<void> undoFinish(String householdId, PantryItem original, String eventId);
+
+  /// Undo from the history later on: returns the eaten / thrown away amount to
+  /// the fridge and logs a "restored" event.
+  Future<void> restoreFromHistory(String householdId, HistoryEvent event, GlebaUser by);
+
+  Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200});
 
   /// Product details this household already entered for [ean], if any.
   Future<ProductInfo?> householdProduct(String householdId, String ean);

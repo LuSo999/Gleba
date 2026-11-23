@@ -16,6 +16,9 @@ class GlebaColors {
         Freshness.pastBestBefore => b == Brightness.light ? const Color(0xFF8D6E63) : const Color(0xFFBCAAA4),
       };
 
+  /// Background behind the fridge: a hint of the icon's purple.
+  static Color backdrop(Brightness b) => b == Brightness.light ? const Color(0xFFF1EAF7) : const Color(0xFF1A1320);
+
   /// Fridge enamel / steel.
   static Color body(Brightness b) => b == Brightness.light ? const Color(0xFFF7FAFC) : const Color(0xFF2B3238);
   static Color bodyEdge(Brightness b) => b == Brightness.light ? const Color(0xFFCAD6DF) : const Color(0xFF151A1E);

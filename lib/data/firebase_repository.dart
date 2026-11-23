@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
+import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import 'repository.dart';
@@ -136,54 +137,95 @@ class FirestoreRepository implements GlebaRepository {
   Map<String, Object?> _toFirestore(PantryItem item) =>
       item.toMap().map((k, v) => MapEntry(k, v is DateTime ? Timestamp.fromDate(v) : v));
 
+  CollectionReference<Map<String, dynamic>> _events(String hid) => _households.doc(hid).collection('events');
+
+  Map<String, Object?> _eventData(HistoryEvent e) => e.toMap()..['at'] = FieldValue.serverTimestamp();
+
   @override
-  Future<void> addItem(String householdId, PantryItem item, String uid) async {
+  Future<void> addItem(String householdId, PantryItem item, GlebaUser by) async {
     final doc = item.id.isEmpty ? _items(householdId).doc() : _items(householdId).doc(item.id);
     final data = _toFirestore(item)
-      ..['addedBy'] = uid
+      ..['addedBy'] = by.uid
       ..['addedAt'] = FieldValue.serverTimestamp()
       ..['updatedAt'] = FieldValue.serverTimestamp();
+    final saved = PantryItem.fromMap(doc.id, item.toMap());
     await (_db.batch()
           ..set(doc, data)
-          ..set(_households.doc(householdId).collection('events').doc(), {
-            'itemId': doc.id,
-            'type': 'added',
-            'quantity': item.quantity,
-            'categoryId': item.categoryId,
-            'price': item.price,
-            'by': uid,
-            'at': FieldValue.serverTimestamp(),
-          }))
+          ..set(_events(householdId).doc(),
+              _eventData(HistoryEvent.forItem(saved, HistoryType.added, by: by.uid, byName: by.shortName))))
         .commit();
     if (item.ean != null) await rememberProduct(householdId, item);
   }
 
   @override
-  Future<void> updateItem(String householdId, PantryItem item) =>
-      _items(householdId).doc(item.id).update(_toFirestore(item)..['updatedAt'] = FieldValue.serverTimestamp());
+  Future<void> updateItem(String householdId, PantryItem item, {HistoryType? history, GlebaUser? by}) async {
+    final batch = _db.batch()
+      ..update(_items(householdId).doc(item.id), _toFirestore(item)..['updatedAt'] = FieldValue.serverTimestamp());
+    if (history != null) {
+      batch.set(_events(householdId).doc(),
+          _eventData(HistoryEvent.forItem(item, history, by: by?.uid, byName: by?.shortName)));
+    }
+    await batch.commit();
+  }
 
   @override
-  Future<void> finishItem(String householdId, PantryItem item, ItemStatus how, String uid, {double? quantity}) async {
+  Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by,
+      {double? quantity}) async {
     final q = quantity ?? item.quantity;
     final remaining = item.quantity - q;
-    final ref = _items(householdId).doc(item.id);
+    final event = _events(householdId).doc();
     await (_db.batch()
-          ..update(ref, {
+          ..update(_items(householdId).doc(item.id), {
             if (remaining > 0) 'quantity': remaining else 'status': how.name,
             'updatedAt': FieldValue.serverTimestamp(),
           })
-          ..set(_households.doc(householdId).collection('events').doc(), {
-            'itemId': item.id,
-            'type': how == ItemStatus.discarded ? 'discarded' : 'consumed',
-            'quantity': q,
-            'categoryId': item.categoryId,
-            'price': item.price == null ? null : item.price! * q / item.quantity,
-            'daysLeft': item.expiryDate.difference(DateTime.now()).inDays,
-            'by': uid,
-            'at': FieldValue.serverTimestamp(),
-          }))
+          ..set(
+              event,
+              _eventData(HistoryEvent.forItem(item,
+                  how == ItemStatus.discarded ? HistoryType.discarded : HistoryType.consumed,
+                  by: by.uid, byName: by.shortName, quantity: q))
+                ..['daysLeft'] = dateOnly(item.expiryDate).difference(dateOnly(DateTime.now())).inDays))
+        .commit();
+    return event.id;
+  }
+
+  @override
+  Future<void> undoFinish(String householdId, PantryItem original, String eventId) => (_db.batch()
+        ..update(_items(householdId).doc(original.id), {
+          'quantity': original.quantity,
+          'status': original.status.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        })
+        ..delete(_events(householdId).doc(eventId)))
+      .commit();
+
+  @override
+  Future<void> restoreFromHistory(String householdId, HistoryEvent event, GlebaUser by) async {
+    final ref = _items(householdId).doc(event.itemId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final item = PantryItem.fromMap(snap.id, snap.data()!);
+    final q = event.quantity ?? 1;
+    final restored = item.status == ItemStatus.active
+        ? item.copyWith(quantity: item.quantity + q)
+        : item.copyWith(status: ItemStatus.active, quantity: q);
+    await (_db.batch()
+          ..update(ref, {
+            'status': restored.status.name,
+            'quantity': restored.quantity,
+            'updatedAt': FieldValue.serverTimestamp(),
+          })
+          ..set(_events(householdId).doc(),
+              _eventData(HistoryEvent.forItem(restored, HistoryType.restored, by: by.uid, byName: by.shortName, quantity: q))))
         .commit();
   }
+
+  @override
+  Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200}) => _events(householdId)
+      .orderBy('at', descending: true)
+      .limit(limit)
+      .snapshots()
+      .map((s) => s.docs.map((d) => HistoryEvent.fromMap(d.id, d.data())).toList());
 
   @override
   Future<ProductInfo?> householdProduct(String householdId, String ean) async {

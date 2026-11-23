@@ -194,7 +194,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       source: _source,
       frozenAt: loc == LocationType.freezer && _categoryId != 'frozen' ? DateTime.now() : null,
     );
-    await ref.read(repositoryProvider).addItem(h.id, item, user.uid);
+    await ref.read(repositoryProvider).addItem(h.id, item, user);
     if (!mounted) return;
     showBurst(context, categoryById(_categoryId).emoji,
         particles: const ['❄️', '✨'], enabled: ref.read(settingsProvider).animations);

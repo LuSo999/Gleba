@@ -73,7 +73,7 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
           ref.read(activeHouseholdIdProvider.notifier).select(hid);
           await finishWithFanfare(ctx, ref, item, how);
         } else {
-          await repo.finishItem(hid, item, how, user.uid);
+          await repo.finishItem(hid, item, how, user);
         }
       case 'snooze':
         await NotificationService.instance.snooze(item, _l);

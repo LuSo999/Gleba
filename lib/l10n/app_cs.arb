@@ -180,5 +180,38 @@
   "photoDate": "Vyfotit datum",
   "dateFromPhoto": "Přečteno z fotky – zkontrolujte",
   "dateNotFound": "Na fotce jsem datum nenašel. Zkuste to blíž, nebo ho zadejte ručně.",
-  "chooseDate": "Které datum je to správné?"
+  "chooseDate": "Které datum je to správné?",
+  "undo": "Zpět",
+  "usedUp": "Došlo",
+  "historyTitle": "Historie",
+  "historyEmpty": "Zatím tu nic není.",
+  "putBack": "Vrátit",
+  "undone": "Vráceno zpět",
+  "snackConsumed": "Snězeno: {name}",
+  "@snackConsumed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "snackDiscarded": "Vyhozeno: {name}",
+  "@snackDiscarded": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "snackChanged": "Upraveno: {name}",
+  "@snackChanged": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "histAdded": "Přidáno",
+  "histConsumed": "Snězeno",
+  "histDiscarded": "Vyhozeno",
+  "histOpened": "Otevřeno",
+  "histFrozen": "Zamraženo",
+  "histEdited": "Upraveno",
+  "histRestored": "Vráceno do lednice",
+  "today": "Dnes",
+  "yesterday": "Včera"
 }

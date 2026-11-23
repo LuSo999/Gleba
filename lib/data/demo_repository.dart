@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import 'repository.dart';
@@ -48,6 +49,7 @@ class DemoRepository implements GlebaRepository {
   final _products = <String, ProductInfo>{};
   final _invites = <String, InviteInfo>{};
   final _rules = <String, NotificationRule>{};
+  final _events = <String, List<HistoryEvent>>{};
   var _prefs = const NotificationPrefs();
   final _changes = StreamController<void>.broadcast();
   var _seq = 0;
@@ -137,26 +139,61 @@ class DemoRepository implements GlebaRepository {
   Stream<List<PantryItem>> watchActiveItems(String householdId) => _watch(() =>
       (_items[householdId]?.values ?? const <PantryItem>[]).where((i) => i.status == ItemStatus.active).toList());
 
+  void _log(String hid, HistoryEvent e) =>
+      (_events[hid] ??= []).insert(0, HistoryEvent.fromMap('e${_seq++}', e.toMap()));
+
   @override
-  Future<void> addItem(String householdId, PantryItem item, String uid) async {
+  Future<void> addItem(String householdId, PantryItem item, GlebaUser by) async {
     final id = item.id.isEmpty ? 'i${_seq++}' : item.id;
-    (_items[householdId] ??= {})[id] = PantryItem.fromMap(id, item.toMap()..['addedBy'] = uid);
+    final saved = PantryItem.fromMap(id, item.toMap()..['addedBy'] = by.uid);
+    (_items[householdId] ??= {})[id] = saved;
+    _log(householdId, HistoryEvent.forItem(saved, HistoryType.added, by: by.uid, byName: by.shortName));
     if (item.ean != null) await rememberProduct(householdId, item);
     _changed();
   }
 
   @override
-  Future<void> updateItem(String householdId, PantryItem item) async {
+  Future<void> updateItem(String householdId, PantryItem item, {HistoryType? history, GlebaUser? by}) async {
     _items[householdId]?[item.id] = item;
+    if (history != null) _log(householdId, HistoryEvent.forItem(item, history, by: by?.uid, byName: by?.shortName));
     _changed();
   }
 
   @override
-  Future<void> finishItem(String householdId, PantryItem item, ItemStatus how, String uid, {double? quantity}) async {
-    final remaining = item.quantity - (quantity ?? item.quantity);
+  Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by,
+      {double? quantity}) async {
+    final q = quantity ?? item.quantity;
+    final remaining = item.quantity - q;
     _items[householdId]?[item.id] = remaining > 0 ? item.copyWith(quantity: remaining) : item.copyWith(status: how);
+    _log(householdId, HistoryEvent.forItem(item, how == ItemStatus.discarded ? HistoryType.discarded : HistoryType.consumed,
+        by: by.uid, byName: by.shortName, quantity: q));
+    _changed();
+    return _events[householdId]!.first.id;
+  }
+
+  @override
+  Future<void> undoFinish(String householdId, PantryItem original, String eventId) async {
+    _items[householdId]?[original.id] = original;
+    _events[householdId]?.removeWhere((e) => e.id == eventId);
     _changed();
   }
+
+  @override
+  Future<void> restoreFromHistory(String householdId, HistoryEvent event, GlebaUser by) async {
+    final item = _items[householdId]?[event.itemId];
+    if (item == null) return;
+    final q = event.quantity ?? 1;
+    final restored = item.status == ItemStatus.active
+        ? item.copyWith(quantity: item.quantity + q)
+        : item.copyWith(status: ItemStatus.active, quantity: q);
+    _items[householdId]![item.id] = restored;
+    _log(householdId, HistoryEvent.forItem(restored, HistoryType.restored, by: by.uid, byName: by.shortName, quantity: q));
+    _changed();
+  }
+
+  @override
+  Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200}) =>
+      _watch(() => (_events[householdId] ?? const []).take(limit).toList());
 
   @override
   Future<ProductInfo?> householdProduct(String householdId, String ean) async => _products['$householdId/$ean'];

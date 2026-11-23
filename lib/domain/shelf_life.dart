@@ -18,7 +18,12 @@ class FoodCategory {
     this.pantryDays,
     this.afterOpeningDays,
     this.keywords = const [],
+    this.multiUse = false,
   });
+
+  /// Used up gradually (butter, ketchup, cheese…): the main action is
+  /// "Used up" instead of "Eaten", so one sandwich doesn't write it off.
+  final bool multiUse;
 
   final String id;
   final String emoji;
@@ -58,15 +63,15 @@ const List<FoodCategory> foodCategories = [
   FoodCategory(id: 'cheeseSoft', emoji: '🧀', defaultLocation: _f, fridgeDays: 7, freezerDays: 90, afterOpeningDays: 5,
       keywords: ['cottage', 'tvaroh', 'mozzarella', 'ricotta', 'mascarpone', 'cream-cheese', 'cream cheese', 'žervé',
           'zerve', 'lučina', 'lucina', 'fresh-cheese', 'smetan', 'cream']),
-  FoodCategory(id: 'cheeseHard', emoji: '🧀', defaultLocation: _f, fridgeDays: 30, freezerDays: 180, afterOpeningDays: 21,
+  FoodCategory(multiUse: true, id: 'cheeseHard', emoji: '🧀', defaultLocation: _f, fridgeDays: 30, freezerDays: 180, afterOpeningDays: 21,
       keywords: ['cheese', 'sýr', 'syr', 'eidam', 'gouda', 'parmez', 'parmesan', 'ementál', 'emental', 'hermelín', 'niva']),
-  FoodCategory(id: 'butter', emoji: '🧈', defaultLocation: _f, fridgeDays: 30, freezerDays: 270, afterOpeningDays: 30,
+  FoodCategory(multiUse: true, id: 'butter', emoji: '🧈', defaultLocation: _f, fridgeDays: 30, freezerDays: 270, afterOpeningDays: 30,
       keywords: ['butter', 'máslo', 'maslo', 'margarin', 'rama']),
-  FoodCategory(id: 'milkUht', emoji: '🥛', defaultLocation: _p, pantryDays: 90, fridgeDays: 90, afterOpeningDays: 4,
+  FoodCategory(multiUse: true, id: 'milkUht', emoji: '🥛', defaultLocation: _p, pantryDays: 90, fridgeDays: 90, afterOpeningDays: 4,
       keywords: ['uht', 'trvanlivé mléko', 'trvanlive mleko', 'plant-milk', 'plant-based-milk', 'rostlinn', 'ovesný nápoj']),
-  FoodCategory(id: 'milk', emoji: '🥛', defaultLocation: _f, fridgeDays: 7, freezerDays: 90, afterOpeningDays: 3,
+  FoodCategory(multiUse: true, id: 'milk', emoji: '🥛', defaultLocation: _f, fridgeDays: 7, freezerDays: 90, afterOpeningDays: 3,
       keywords: ['milk', 'mléko', 'mleko', 'dairies', 'dairy']),
-  FoodCategory(id: 'eggs', emoji: '🥚', defaultLocation: _f, fridgeDays: 28, pantryDays: 21,
+  FoodCategory(multiUse: true, id: 'eggs', emoji: '🥚', defaultLocation: _f, fridgeDays: 28, pantryDays: 21,
       keywords: ['egg', 'vejce', 'vajíčk', 'vajick']),
   FoodCategory(id: 'deli', emoji: '🥓', defaultLocation: _f, fridgeDays: 14, freezerDays: 60, afterOpeningDays: 5,
       keywords: ['en:hams', ' ham', 'šunk', 'sunk', 'salám', 'salam', 'sausage', 'klobás', 'klobas', 'párk', 'park', 'slanin',
@@ -90,19 +95,19 @@ const List<FoodCategory> foodCategories = [
   FoodCategory(id: 'bread', emoji: '🍞', defaultLocation: _p, pantryDays: 4, fridgeDays: 7, freezerDays: 90,
       keywords: ['bread', 'chléb', 'chleb', 'chleba', 'rohlík', 'rohlik', 'pečivo', 'pecivo', 'bagel', 'toast',
           'bageta', 'baguette', 'koláč', 'kolac', 'buchta']),
-  FoodCategory(id: 'drinks', emoji: '🧃', defaultLocation: _p, pantryDays: 180, fridgeDays: 180, afterOpeningDays: 5,
+  FoodCategory(multiUse: true, id: 'drinks', emoji: '🧃', defaultLocation: _p, pantryDays: 180, fridgeDays: 180, afterOpeningDays: 5,
       keywords: ['beverage', 'drink', 'juice', 'džus', 'dzus', 'nápoj', 'napoj', 'limonád', 'limonad', 'water', 'voda',
           'pivo', 'beer', 'víno', 'wine']),
-  FoodCategory(id: 'sauces', emoji: '🫙', defaultLocation: _p, pantryDays: 365, fridgeDays: 365, afterOpeningDays: 60,
+  FoodCategory(multiUse: true, id: 'sauces', emoji: '🫙', defaultLocation: _p, pantryDays: 365, fridgeDays: 365, afterOpeningDays: 60,
       keywords: ['sauce', 'omáčk', 'omack', 'ketchup', 'kečup', 'kecup', 'mustard', 'hořčic', 'horcic', 'majonéz',
           'majonez', 'mayonnaise', 'dressing', 'pesto', 'condiment', 'džem', 'dzem', 'jam', 'marmeláda']),
   FoodCategory(id: 'canned', emoji: '🥫', defaultLocation: _p, pantryDays: 730, afterOpeningDays: 4,
       keywords: ['canned', 'konzerv', 'plechov', 'sterilovan', 'pickled', 'nakládan', 'nakladan']),
-  FoodCategory(id: 'dry', emoji: '🌾', defaultLocation: _p, pantryDays: 365,
+  FoodCategory(multiUse: true, id: 'dry', emoji: '🌾', defaultLocation: _p, pantryDays: 365,
       keywords: ['pasta', 'těstovin', 'testovin', 'rice', 'rýže', 'ryze', 'flour', 'mouk', 'cereal', 'müsli', 'musli',
           'oat', 'ovesn', 'legume', 'luštěnin', 'lusten', 'čočk', 'cocka', 'fazol', 'bean', 'cukr', 'sugar', 'sůl',
           'coffee', 'káva', 'kava', 'tea', 'čaj']),
-  FoodCategory(id: 'sweets', emoji: '🍫', defaultLocation: _p, pantryDays: 180,
+  FoodCategory(multiUse: true, id: 'sweets', emoji: '🍫', defaultLocation: _p, pantryDays: 180,
       keywords: ['chocolate', 'čokolád', 'cokolad', 'sušenk', 'susenk', 'biscuit', 'cookie', 'candy', 'bonbon',
           'snack', 'chips', 'brambůrk', 'bramburk', 'oříšk', 'orisk', 'nut']),
   FoodCategory(id: 'other', emoji: '📦', defaultLocation: _f, fridgeDays: 7, freezerDays: 90, pantryDays: 90,

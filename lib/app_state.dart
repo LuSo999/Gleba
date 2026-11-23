@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'data/open_food_facts.dart';
 import 'data/product_lookup.dart';
 import 'data/repository.dart';
+import 'domain/history.dart';
 import 'domain/models.dart';
 import 'domain/notification_rules.dart';
 
@@ -78,6 +79,12 @@ final allItemsProvider = StreamProvider<List<PantryItem>>((ref) {
     controller.close();
   });
   return controller.stream;
+});
+
+final historyProvider = StreamProvider<List<HistoryEvent>>((ref) {
+  final h = ref.watch(activeHouseholdProvider);
+  if (h == null) return Stream.value(const []);
+  return ref.watch(repositoryProvider).watchHistory(h.id);
 });
 
 final notificationRulesProvider = StreamProvider<List<NotificationRule>>((ref) {

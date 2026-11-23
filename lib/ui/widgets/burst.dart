@@ -4,10 +4,11 @@ import 'package:material_ui/material_ui.dart';
 
 /// Fun little celebration: a big emoji pops in the middle of the screen with
 /// smaller ones flying outwards. Used when food is eaten or thrown away.
-void showBurst(BuildContext context, String emoji, {List<String> particles = const ['✨'], bool enabled = true}) {
-  if (!enabled) return;
-  final overlay = Overlay.maybeOf(context);
-  if (overlay == null) return;
+void showBurst(BuildContext context, String emoji, {List<String> particles = const ['✨'], bool enabled = true}) =>
+    showBurstOn(Overlay.maybeOf(context), emoji, particles: particles, enabled: enabled);
+
+void showBurstOn(OverlayState? overlay, String emoji, {List<String> particles = const ['✨'], bool enabled = true}) {
+  if (!enabled || overlay == null || !overlay.mounted) return;
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _Burst(emoji: emoji, particles: particles, onDone: () => entry.remove()),
@@ -46,7 +47,7 @@ class _BurstState extends State<_Burst> with SingleTickerProviderStateMixin {
         builder: (context, _) {
           final t = _c.value;
           final pop = Curves.elasticOut.transform((t * 1.6).clamp(0, 1));
-          final fade = t < 0.7 ? 1.0 : 1 - (t - 0.7) / 0.3;
+          final fade = (t < 0.7 ? 1.0 : 1 - (t - 0.7) / 0.3).clamp(0.0, 1.0);
           return Opacity(
             opacity: fade,
             child: Stack(

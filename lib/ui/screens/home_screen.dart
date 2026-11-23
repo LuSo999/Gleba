@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app_state.dart';
 import '../fridge/fridge_view.dart';
 import '../labels.dart';
+import '../theme.dart';
 import '../widgets/item_sheet.dart';
 import 'households_screen.dart';
 import 'urgent_list.dart';
@@ -50,6 +51,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: l.historyTitle,
+            icon: const Icon(Icons.history),
+            onPressed: () => context.push('/history'),
+          ),
+          IconButton(
             tooltip: l.invite,
             icon: const Icon(Icons.person_add_alt),
             onPressed: () => showInviteDialog(context, ref, active),
@@ -86,11 +92,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Text(l.demoBanner, style: Theme.of(context).textTheme.labelSmall),
             ),
           Expanded(
-            child: AnimatedSwitcher(
+            child: Material(
+              // Soft purple tint behind the fridge, matching the app icon.
+              color: GlebaColors.backdrop(Theme.of(context).brightness),
+              child: AnimatedSwitcher(
               duration: ref.watch(settingsProvider).anim(const Duration(milliseconds: 250)),
               child: _list
                   ? UrgentList(key: const ValueKey('list'), items: items)
-                  : FridgeView(key: const ValueKey('fridge'), items: items, onItemTap: (i) => showItemSheet(context, i)),
+                  : FridgeView(key: const ValueKey('fridge'), items: items, onItemTap: (i) => showItemSheet(context, ref, i)),
+              ),
             ),
           ),
         ],

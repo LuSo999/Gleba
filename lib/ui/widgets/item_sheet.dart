@@ -2,39 +2,89 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
+import '../../data/repository.dart';
 import '../../domain/freshness.dart';
+import '../../domain/history.dart';
 import '../../domain/models.dart';
 import '../../domain/notification_rules.dart';
 import '../../domain/shelf_life.dart';
+import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
 import 'burst.dart';
 
-Future<void> finishWithFanfare(BuildContext context, WidgetRef ref, PantryItem item, ItemStatus how,
-    {double? quantity}) async {
-  final h = ref.read(activeHouseholdProvider);
-  final user = ref.read(userProvider).value;
-  if (h == null || user == null) return;
-  final anim = ref.read(settingsProvider).animations;
-  if (how == ItemStatus.consumed) {
-    showBurst(context, '😋', particles: const ['✨', '💚', '⭐'], enabled: anim);
-  } else {
-    showBurst(context, '🗑️', particles: const ['💧'], enabled: anim);
+/// Item actions with an "Undo" snackbar. Everything needed is captured up
+/// front, so the actions keep working after the bottom sheet is closed.
+class ItemActions {
+  ItemActions._(this._repo, this._hid, this._user, this._anim, this._overlay, this._messenger, this._l);
+
+  static ItemActions? of(BuildContext host, WidgetRef ref) {
+    final hid = ref.read(activeHouseholdProvider)?.id;
+    final user = ref.read(userProvider).value;
+    if (hid == null || user == null) return null;
+    return ItemActions._(ref.read(repositoryProvider), hid, user, ref.read(settingsProvider).animations,
+        Overlay.maybeOf(host, rootOverlay: true), ScaffoldMessenger.maybeOf(host), AppLocalizations.of(host));
   }
-  await ref.read(repositoryProvider).finishItem(h.id, item, how, user.uid, quantity: quantity);
+
+  final GlebaRepository _repo;
+  final String _hid;
+  final GlebaUser _user;
+  final bool _anim;
+  final OverlayState? _overlay;
+  final ScaffoldMessengerState? _messenger;
+  final AppLocalizations _l;
+
+  void _snack(String text, Future<void> Function() undo) {
+    _messenger
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(text),
+        duration: const Duration(seconds: 6),
+        persist: false,
+        action: SnackBarAction(label: _l.undo, onPressed: () => undo()),
+      ));
+  }
+
+  Future<void> finish(PantryItem item, ItemStatus how, {double? quantity}) async {
+    how == ItemStatus.consumed
+        ? showBurstOn(_overlay, '😋', particles: const ['✨', '💚', '⭐'], enabled: _anim)
+        : showBurstOn(_overlay, '🗑️', particles: const ['💧'], enabled: _anim);
+    final eventId = await _repo.finishItem(_hid, item, how, _user, quantity: quantity);
+    final label = quantity != null && quantity < item.quantity ? '${item.name} (${_fmt(quantity)} ${item.unit})' : item.name;
+    _snack(how == ItemStatus.consumed ? _l.snackConsumed(label) : _l.snackDiscarded(label),
+        () => _repo.undoFinish(_hid, item, eventId));
+  }
+
+  Future<void> change(PantryItem original, PantryItem updated, HistoryType type) async {
+    await _repo.updateItem(_hid, updated, history: type, by: _user);
+    _snack(_l.snackChanged(original.name), () => _repo.updateItem(_hid, original));
+  }
+
+  static String _fmt(double q) => q == q.roundToDouble() ? '${q.toInt()}' : '$q';
 }
 
-Future<void> showItemSheet(BuildContext context, PantryItem item) => showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (_) => _ItemSheet(item: item),
-    );
+Future<void> finishWithFanfare(BuildContext context, WidgetRef ref, PantryItem item, ItemStatus how,
+        {double? quantity}) async =>
+    ItemActions.of(context, ref)?.finish(item, how, quantity: quantity);
+
+Future<void> showItemSheet(BuildContext context, WidgetRef ref, PantryItem item) {
+  final actions = ItemActions.of(context, ref);
+  return showModalBottomSheet(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (_) => _ItemSheet(item: item, actions: actions),
+  );
+}
 
 class _ItemSheet extends ConsumerWidget {
-  const _ItemSheet({required this.item});
+  const _ItemSheet({required this.item, required this.actions});
 
   final PantryItem item;
+
+  /// Captured when the sheet was opened, so it survives the list row being
+  /// removed while the sheet closes.
+  final ItemActions? actions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,18 +94,16 @@ class _ItemSheet extends ConsumerWidget {
     final color = GlebaColors.freshness(freshnessOf(item, now), theme.brightness);
     final cat = categoryById(item.categoryId);
     final settings = ref.watch(settingsProvider);
-    final repo = ref.read(repositoryProvider);
-    final hid = ref.read(activeHouseholdProvider)?.id;
     final location = item.locationType ?? suggestLocation(item.categoryId);
 
-    Future<void> update(PantryItem updated) async {
-      if (hid != null) await repo.updateItem(hid, updated);
+    Future<void> update(PantryItem updated, HistoryType type) async {
       if (context.mounted) Navigator.pop(context);
+      await actions?.change(item, updated, type);
     }
 
     Future<void> finish(ItemStatus how, [double? q]) async {
       Navigator.pop(context);
-      await finishWithFanfare(context, ref, item, how, quantity: q);
+      await actions?.finish(item, how, quantity: q);
     }
 
     return SafeArea(
@@ -106,8 +154,8 @@ class _ItemSheet extends ConsumerWidget {
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () => finish(ItemStatus.consumed),
-                    icon: const Text('😋'),
-                    label: Text(l.eaten),
+                    icon: Text(cat.multiUse ? '✅' : '😋'),
+                    label: Text(cat.multiUse ? l.usedUp : l.eaten),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -131,7 +179,7 @@ class _ItemSheet extends ConsumerWidget {
               children: [
                 if (!item.isOpened)
                   TextButton.icon(
-                    onPressed: () => update(item.copyWith(openedAt: now, expiryDate: expiryAfterOpening(item, now))),
+                    onPressed: () => update(item.copyWith(openedAt: now, expiryDate: expiryAfterOpening(item, now)), HistoryType.opened),
                     icon: const Text('🔓'),
                     label: Text(l.markOpened),
                   ),
@@ -142,7 +190,7 @@ class _ItemSheet extends ConsumerWidget {
                       expiryDate: expiryAfterFreezing(item, now),
                       locationType: LocationType.freezer,
                       locationId: LocationType.freezer.name,
-                    )),
+                    ), HistoryType.frozen),
                     icon: const Text('❄️'),
                     label: Text(l.freeze),
                   ),
@@ -154,7 +202,7 @@ class _ItemSheet extends ConsumerWidget {
                       firstDate: now.subtract(const Duration(days: 365)),
                       lastDate: now.add(const Duration(days: 365 * 5)),
                     );
-                    if (d != null) await update(item.copyWith(expiryDate: d));
+                    if (d != null) await update(item.copyWith(expiryDate: d), HistoryType.edited);
                   },
                   icon: const Icon(Icons.edit_calendar),
                   label: Text(l.expiryDate),
