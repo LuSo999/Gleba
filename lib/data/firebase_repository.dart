@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
+import '../domain/shopping.dart';
 import 'repository.dart';
 
 class FirebaseAuthService implements AuthService {
@@ -303,4 +304,52 @@ class FirestoreRepository implements GlebaRepository {
       .collection('snoozes')
       .doc(item.id)
       .set({'until': Timestamp.fromDate(until), 'householdId': item.householdId});
+
+  CollectionReference<Map<String, dynamic>> _shopping(String hid) => _households.doc(hid).collection('shoppingList');
+  CollectionReference<Map<String, dynamic>> _stock(String hid) => _households.doc(hid).collection('stockRules');
+
+  /// Firestore document ids can't contain "/".
+  static String _ruleId(String productKey) => productKey.replaceAll('/', '_');
+
+  @override
+  Stream<List<ShoppingEntry>> watchShoppingList(String householdId) => _shopping(householdId)
+      .snapshots()
+      .map((s) => s.docs.map((d) => ShoppingEntry.fromMap(d.id, d.data())).toList());
+
+  @override
+  Future<void> addShopping(String householdId, ShoppingEntry entry, GlebaUser by) => _shopping(householdId).add({
+        ...entry.toMap(),
+        'byName': by.shortName,
+        'by': by.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+  @override
+  Future<void> setShoppingDone(String householdId, String entryId, bool done) =>
+      _shopping(householdId).doc(entryId).update({'done': done});
+
+  @override
+  Future<void> deleteShopping(String householdId, String entryId) => _shopping(householdId).doc(entryId).delete();
+
+  @override
+  Future<void> clearBought(String householdId) async {
+    final done = await _shopping(householdId).where('done', isEqualTo: true).get();
+    final batch = _db.batch();
+    for (final d in done.docs) {
+      batch.delete(d.reference);
+    }
+    await batch.commit();
+  }
+
+  @override
+  Stream<List<StockRule>> watchStockRules(String householdId) =>
+      _stock(householdId).snapshots().map((s) => s.docs.map((d) => StockRule.fromMap(d.data())).toList());
+
+  @override
+  Future<void> saveStockRule(String householdId, StockRule rule) =>
+      _stock(householdId).doc(_ruleId(rule.productKey)).set(rule.toMap());
+
+  @override
+  Future<void> deleteStockRule(String householdId, String productKey) =>
+      _stock(householdId).doc(_ruleId(productKey)).delete();
 }

@@ -280,5 +280,28 @@
   "recipesCopy": "Zkopírovat zadání pro AI",
   "recipesThinking": "Vymýšlím recepty…",
   "productFromPhoto": "Rozpoznat z fotky obalu (AI)",
-  "aiReadingDate": "Čtu datum pomocí AI…"
+  "aiReadingDate": "Čtu datum pomocí AI…",
+  "shoppingTitle": "Nákupní seznam",
+  "shoppingAdd": "Co koupit? (např. 2 mléko)",
+  "shoppingEmpty": "Nic nechybí 🎉",
+  "shoppingBought": "Koupeno",
+  "shoppingClear": "Smazat koupené",
+  "toShopping": "Na nákup",
+  "addedToShopping": "Přidáno na nákup: {name}",
+  "@addedToShopping": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "watchStock": "Hlídat zásobu",
+  "stockRules": "Hlídané zásoby",
+  "stockMin": "Mít vždy aspoň",
+  "stockNow": "teď {n}",
+  "@stockNow": {
+    "placeholders": {
+      "n": {}
+    }
+  },
+  "stockAuto": "doplněno automaticky",
+  "more": "Další"
 }

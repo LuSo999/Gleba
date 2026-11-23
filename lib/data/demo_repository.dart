@@ -3,6 +3,7 @@ import 'dart:async';
 import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
+import '../domain/shopping.dart';
 import 'repository.dart';
 
 /// In-memory backend used until Firebase is configured, and in widget tests.
@@ -50,6 +51,8 @@ class DemoRepository implements GlebaRepository {
   final _invites = <String, InviteInfo>{};
   final _rules = <String, NotificationRule>{};
   final _events = <String, List<HistoryEvent>>{};
+  final _shopping = <String, Map<String, ShoppingEntry>>{};
+  final _stock = <String, Map<String, StockRule>>{};
   var _prefs = const NotificationPrefs();
   final _changes = StreamController<void>.broadcast();
   var _seq = 0;
@@ -91,10 +94,16 @@ class DemoRepository implements GlebaRepository {
     };
   }
 
-  Stream<T> _watch<T>(T Function() read) async* {
-    yield read();
-    yield* _changes.stream.map((_) => read());
-  }
+  /// Current value, then a new one after every change. Changes are captured
+  /// from the start, so none are lost while the listener is paused.
+  Stream<T> _watch<T>(T Function() read) => Stream.multi((c) {
+        c.add(read());
+        final sub = _changes.stream.listen((_) => c.add(read()));
+        // Don't return the cancel future: Stream.first waits for it.
+        c.onCancel = () {
+          sub.cancel();
+        };
+      });
 
   void _changed() => _changes.add(null);
 
@@ -240,4 +249,52 @@ class DemoRepository implements GlebaRepository {
 
   @override
   Future<void> snoozeItem(String uid, PantryItem item, DateTime until) async {}
+
+  @override
+  Stream<List<ShoppingEntry>> watchShoppingList(String householdId) =>
+      _watch(() => (_shopping[householdId]?.values ?? const <ShoppingEntry>[]).toList());
+
+  @override
+  Future<void> addShopping(String householdId, ShoppingEntry entry, GlebaUser by) async {
+    final id = 's${_seq++}';
+    (_shopping[householdId] ??= {})[id] =
+        ShoppingEntry.fromMap(id, {...entry.toMap(), 'byName': by.shortName, 'createdAt': DateTime.now()});
+    _changed();
+  }
+
+  @override
+  Future<void> setShoppingDone(String householdId, String entryId, bool done) async {
+    final e = _shopping[householdId]?[entryId];
+    if (e == null) return;
+    _shopping[householdId]![entryId] = ShoppingEntry.fromMap(entryId, {...e.toMap(), 'done': done, 'createdAt': e.createdAt});
+    _changed();
+  }
+
+  @override
+  Future<void> deleteShopping(String householdId, String entryId) async {
+    _shopping[householdId]?.remove(entryId);
+    _changed();
+  }
+
+  @override
+  Future<void> clearBought(String householdId) async {
+    _shopping[householdId]?.removeWhere((_, e) => e.done);
+    _changed();
+  }
+
+  @override
+  Stream<List<StockRule>> watchStockRules(String householdId) =>
+      _watch(() => (_stock[householdId]?.values ?? const <StockRule>[]).toList());
+
+  @override
+  Future<void> saveStockRule(String householdId, StockRule rule) async {
+    (_stock[householdId] ??= {})[rule.productKey] = rule;
+    _changed();
+  }
+
+  @override
+  Future<void> deleteStockRule(String householdId, String productKey) async {
+    _stock[householdId]?.remove(productKey);
+    _changed();
+  }
 }

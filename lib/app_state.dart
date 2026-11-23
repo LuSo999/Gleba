@@ -10,6 +10,7 @@ import 'data/repository.dart';
 import 'domain/history.dart';
 import 'domain/models.dart';
 import 'domain/notification_rules.dart';
+import 'domain/shopping.dart';
 
 /// Overridden in main() with the Firebase or demo implementation.
 final authServiceProvider = Provider<AuthService>((ref) => throw UnimplementedError());
@@ -85,6 +86,18 @@ final historyProvider = StreamProvider<List<HistoryEvent>>((ref) {
   final h = ref.watch(activeHouseholdProvider);
   if (h == null) return Stream.value(const []);
   return ref.watch(repositoryProvider).watchHistory(h.id);
+});
+
+final shoppingListProvider = StreamProvider<List<ShoppingEntry>>((ref) {
+  final h = ref.watch(activeHouseholdProvider);
+  if (h == null) return Stream.value(const []);
+  return ref.watch(repositoryProvider).watchShoppingList(h.id);
+});
+
+final stockRulesProvider = StreamProvider<List<StockRule>>((ref) {
+  final h = ref.watch(activeHouseholdProvider);
+  if (h == null) return Stream.value(const []);
+  return ref.watch(repositoryProvider).watchStockRules(h.id);
 });
 
 final notificationRulesProvider = StreamProvider<List<NotificationRule>>((ref) {

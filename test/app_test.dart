@@ -68,7 +68,9 @@ void main() {
       child: const GlebaApp(),
     ));
     await settle(tester);
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.tap(find.byTooltip('Další'));
+    await settle(tester);
+    await tester.tap(find.text('Nastavení'));
     await settle(tester);
     await tester.tap(find.text('Upozornění'));
     await settle(tester);
@@ -134,12 +136,67 @@ void main() {
     await openButter();
     await tester.tap(find.text('Došlo'));
     await settle(tester);
-    await tester.tap(find.byIcon(Icons.history));
+    await tester.tap(find.byTooltip('Další'));
+    await settle(tester);
+    await tester.tap(find.text('Historie'));
     await settle(tester);
     expect(find.text('Máslo'), findsOneWidget);
     await tester.tap(find.text('Vrátit'));
     await settle(tester);
     final items = await repo.watchActiveItems('home').first;
     expect(items.any((i) => i.name == 'Máslo'), isTrue);
+  });
+
+  testWidgets('stock rule refills the shopping list when butter runs out', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    final auth = DemoAuthService();
+    final repo = DemoRepository();
+    await auth.signInWithGoogle();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        isDemoProvider.overrideWithValue(true),
+        authServiceProvider.overrideWithValue(auth),
+        repositoryProvider.overrideWithValue(repo),
+      ],
+      child: const GlebaApp(),
+    ));
+    await settle(tester);
+    await tester.tap(find.text('Spotřebuj nejdřív'));
+    await settle(tester);
+
+    Future<void> openButter() async {
+      final tile = find.ancestor(of: find.text('Máslo'), matching: find.byType(ListTile));
+      await tester.ensureVisible(tile);
+      await settle(tester);
+      await tester.tapAt(tester.getTopLeft(tile) + const Offset(30, 20));
+      await settle(tester);
+    }
+
+    // Keep at least 1 butter.
+    await openButter();
+    await tester.tap(find.text('Hlídat zásobu'));
+    await settle(tester);
+    await tester.tap(find.text('Uložit'));
+    await settle(tester);
+    expect(await repo.watchShoppingList('home').first, isEmpty); // still have one
+
+    // Use it up → automatically on the shopping list.
+    await openButter();
+    await tester.tap(find.text('Došlo'));
+    await settle(tester);
+    final list = await repo.watchShoppingList('home').first;
+    expect(list.single.name, 'Máslo');
+    expect(list.single.auto, isTrue);
+
+    await tester.tap(find.byTooltip('Nákupní seznam'));
+    await settle(tester);
+    expect(find.text('Máslo · 1 ks'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('Hlídané zásoby'), 200, scrollable: find.ancestor(of: find.text('Máslo · 1 ks'), matching: find.byType(Scrollable)).first);
+    expect(find.textContaining('Hlídané zásoby'), findsOneWidget);
   });
 }

@@ -8,10 +8,36 @@ import '../../domain/history.dart';
 import '../../domain/models.dart';
 import '../../domain/notification_rules.dart';
 import '../../domain/shelf_life.dart';
+import '../../domain/shopping.dart';
 import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
+import '../screens/shopping_screen.dart';
 import 'burst.dart';
+
+/// Adds products that dropped below their stock rule to the shopping list.
+Future<void> restock(GlebaRepository repo, String hid, GlebaUser by, {List<StockRule>? rules}) async {
+  final r = rules ?? await repo.watchStockRules(hid).first;
+  if (r.isEmpty) return;
+  final items = await repo.watchActiveItems(hid).first;
+  final list = await repo.watchShoppingList(hid).first;
+  for (final rule in restockNeeded(r, items, list)) {
+    final missing = rule.minQuantity - stockOf(rule.productKey, items);
+    await repo.addShopping(
+      hid,
+      ShoppingEntry(
+        id: '',
+        name: rule.name,
+        quantity: missing,
+        unit: rule.unit,
+        categoryId: rule.categoryId,
+        productKey: rule.productKey,
+        auto: true,
+      ),
+      by,
+    );
+  }
+}
 
 /// Item actions with an "Undo" snackbar. Everything needed is captured up
 /// front, so the actions keep working after the bottom sheet is closed.
@@ -50,9 +76,19 @@ class ItemActions {
         ? showBurstOn(_overlay, '😋', particles: const ['✨', '💚', '⭐'], enabled: _anim)
         : showBurstOn(_overlay, '🗑️', particles: const ['💧'], enabled: _anim);
     final eventId = await _repo.finishItem(_hid, item, how, _user, quantity: quantity);
+    await restock(_repo, _hid, _user);
     final label = quantity != null && quantity < item.quantity ? '${item.name} (${_fmt(quantity)} ${item.unit})' : item.name;
     _snack(how == ItemStatus.consumed ? _l.snackConsumed(label) : _l.snackDiscarded(label),
         () => _repo.undoFinish(_hid, item, eventId));
+  }
+
+  Future<void> addToShopping(PantryItem item) async {
+    await _repo.addShopping(
+      _hid,
+      ShoppingEntry(id: '', name: item.name, categoryId: item.categoryId, productKey: productKeyOf(item)),
+      _user,
+    );
+    _messenger?.showSnackBar(SnackBar(content: Text(_l.addedToShopping(item.name))));
   }
 
   Future<void> change(PantryItem original, PantryItem updated, HistoryType type) async {
@@ -73,14 +109,17 @@ Future<void> showItemSheet(BuildContext context, WidgetRef ref, PantryItem item)
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (_) => _ItemSheet(item: item, actions: actions),
+    builder: (_) => _ItemSheet(item: item, actions: actions, host: context),
   );
 }
 
 class _ItemSheet extends ConsumerWidget {
-  const _ItemSheet({required this.item, required this.actions});
+  const _ItemSheet({required this.item, required this.actions, required this.host});
 
   final PantryItem item;
+
+  /// Screen below the sheet, for dialogs opened after the sheet closes.
+  final BuildContext host;
 
   /// Captured when the sheet was opened, so it survives the list row being
   /// removed while the sheet closes.
@@ -206,6 +245,29 @@ class _ItemSheet extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.edit_calendar),
                   label: Text(l.expiryDate),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    actions?.addToShopping(item);
+                  },
+                  icon: const Text('🛒'),
+                  label: Text(l.toShopping),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    final key = productKeyOf(item);
+                    final existing = (ref.read(stockRulesProvider).value ?? const []).where((r) => r.productKey == key);
+                    editStockRule(
+                      host,
+                      ref,
+                      existing.firstOrNull ??
+                          StockRule(productKey: key, name: item.name, minQuantity: 1, unit: item.unit, categoryId: item.categoryId),
+                    );
+                  },
+                  icon: const Text('🔁'),
+                  label: Text(l.watchStock),
                 ),
                 TextButton.icon(
                   onPressed: () => _editProductRule(context, ref, item),

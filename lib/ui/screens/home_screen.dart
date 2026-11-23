@@ -27,6 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final active = ref.watch(activeHouseholdProvider);
     final items = ref.watch(itemsProvider).value ?? const [];
     final isDemo = ref.watch(isDemoProvider);
+    final shoppingCount = (ref.watch(shoppingListProvider).value ?? const []).where((e) => !e.done).length;
 
     if (households.isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (active == null) return const NoHouseholdScreen();
@@ -51,24 +52,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: l.shoppingTitle,
+            icon: Badge(
+              isLabelVisible: shoppingCount > 0,
+              label: Text('$shoppingCount'),
+              child: const Icon(Icons.shopping_cart_outlined),
+            ),
+            onPressed: () => context.push('/shopping'),
+          ),
+          IconButton(
             tooltip: l.recipesTitle,
             icon: const Icon(Icons.restaurant_menu),
             onPressed: () => context.push('/recipes'),
           ),
-          IconButton(
-            tooltip: l.historyTitle,
-            icon: const Icon(Icons.history),
-            onPressed: () => context.push('/history'),
-          ),
-          IconButton(
-            tooltip: l.invite,
-            icon: const Icon(Icons.person_add_alt),
-            onPressed: () => showInviteDialog(context, ref, active),
-          ),
-          IconButton(
-            tooltip: l.settings,
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
+          PopupMenuButton<String>(
+            tooltip: l.more,
+            onSelected: (v) => switch (v) {
+              'history' => context.push('/history'),
+              'invite' => showInviteDialog(context, ref, active),
+              _ => context.push('/settings'),
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'history', child: ListTile(leading: const Icon(Icons.history), title: Text(l.historyTitle))),
+              PopupMenuItem(value: 'invite', child: ListTile(leading: const Icon(Icons.person_add_alt), title: Text(l.invite))),
+              PopupMenuItem(value: 'settings', child: ListTile(leading: const Icon(Icons.settings_outlined), title: Text(l.settings))),
+            ],
           ),
         ],
         bottom: PreferredSize(

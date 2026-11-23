@@ -30,7 +30,8 @@
 ## Fáze 2: Chytré funkce
 - [x] AI: Gemini, OpenAI, Claude – jen vlastní klíče uživatelů (v zařízení / sdílený pro domácnost přes Cloud Functions), poskytovatel volitelný pro každou funkci
 - [x] Účtenky, recepty (+ „zkopírovat zadání“), AI fallback na datum, neznámý produkt z fotky
-- [ ] Statistiky, nákupní seznam, minimální zásoby
+- [x] Nákupní seznam (sdílený), přidání z detailu produktu, hlídání minimálních zásob s automatickým doplněním
+- [ ] Statistiky
 - [ ] Inventurní režim
 - [ ] Widget
 - [ ] ~~Web push~~ (nechceme – upozornění jen do telefonu)

@@ -1,6 +1,7 @@
 import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
+import '../domain/shopping.dart';
 
 /// Signed-in user as the app sees it (independent of Firebase).
 class GlebaUser {
@@ -85,6 +86,16 @@ abstract class GlebaRepository {
 
   /// "Remind me tomorrow" – the server skips the item until [until].
   Future<void> snoozeItem(String uid, PantryItem item, DateTime until);
+
+  // ---- Shopping list & stock rules (shared by the household) ----
+  Stream<List<ShoppingEntry>> watchShoppingList(String householdId);
+  Future<void> addShopping(String householdId, ShoppingEntry entry, GlebaUser by);
+  Future<void> setShoppingDone(String householdId, String entryId, bool done);
+  Future<void> deleteShopping(String householdId, String entryId);
+  Future<void> clearBought(String householdId);
+  Stream<List<StockRule>> watchStockRules(String householdId);
+  Future<void> saveStockRule(String householdId, StockRule rule);
+  Future<void> deleteStockRule(String householdId, String productKey);
 }
 
 /// Invite codes: 8 chars, no look-alike characters (0/O, 1/I/L).

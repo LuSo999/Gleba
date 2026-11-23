@@ -185,5 +185,18 @@
   "recipesCopy": "Copy prompt for AI",
   "recipesThinking": "Thinking up recipes…",
   "productFromPhoto": "Recognise from package photo (AI)",
-  "aiReadingDate": "Reading the date with AI…"
+  "aiReadingDate": "Reading the date with AI…",
+  "shoppingTitle": "Shopping list",
+  "shoppingAdd": "What to buy? (e.g. 2 milk)",
+  "shoppingEmpty": "Nothing missing 🎉",
+  "shoppingBought": "Bought",
+  "shoppingClear": "Clear bought",
+  "toShopping": "To shopping list",
+  "addedToShopping": "Added to shopping list: {name}",
+  "watchStock": "Keep in stock",
+  "stockRules": "Kept in stock",
+  "stockMin": "Always have at least",
+  "stockNow": "now {n}",
+  "stockAuto": "added automatically",
+  "more": "More"
 }
