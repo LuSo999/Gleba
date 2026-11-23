@@ -50,7 +50,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 duration: ref.watch(settingsProvider).anim(const Duration(milliseconds: 1200)),
                 curve: Curves.elasticOut,
                 builder: (_, v, child) => Transform.scale(scale: 0.5 + 0.5 * v, child: child),
-                child: const Text('🧊', textAlign: TextAlign.center, style: TextStyle(fontSize: 88)),
+                child: Image.asset('assets/branding/icon.png', height: 140),
               ),
               Text('Gleba',
                   textAlign: TextAlign.center,
