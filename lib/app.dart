@@ -48,28 +48,58 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
-      GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
+      GoRoute(path: '/sign-in', builder: (_, _) => Narrow(const SignInScreen())),
       GoRoute(
         path: '/add',
-        builder: (_, s) => AddItemScreen(
-          mode: AddMode.values.where((m) => m.name == s.uri.queryParameters['mode']).firstOrNull ?? AddMode.manual,
+        builder: (_, s) => Narrow(
+          AddItemScreen(
+            mode: AddMode.values.where((m) => m.name == s.uri.queryParameters['mode']).firstOrNull ?? AddMode.manual,
+          ),
         ),
       ),
-      GoRoute(path: '/inventory', builder: (_, s) => InventoryScreen(filter: s.uri.queryParameters['filter'])),
-      GoRoute(path: '/take', builder: (_, _) => const TakeScreen()),
-      GoRoute(path: '/stats', builder: (_, _) => const StatsScreen()),
-      GoRoute(path: '/shopping', builder: (_, _) => const ShoppingScreen()),
-      GoRoute(path: '/receipt', builder: (_, _) => const ReceiptScreen()),
-      GoRoute(path: '/recipes', builder: (_, _) => const RecipesScreen()),
-      GoRoute(path: '/settings/ai', builder: (_, _) => const AiSettingsScreen()),
-      GoRoute(path: '/history', builder: (_, _) => const HistoryScreen()),
-      GoRoute(path: '/households', builder: (_, _) => const HouseholdsScreen()),
-      GoRoute(path: '/join/:code', builder: (_, s) => JoinScreen(code: s.pathParameters['code']!)),
-      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
-      GoRoute(path: '/settings/notifications', builder: (_, _) => const NotificationSettingsScreen()),
+      GoRoute(
+        path: '/inventory',
+        builder: (_, s) => Narrow(InventoryScreen(filter: s.uri.queryParameters['filter'])),
+      ),
+      GoRoute(path: '/take', builder: (_, _) => Narrow(const TakeScreen())),
+      GoRoute(path: '/stats', builder: (_, _) => Narrow(const StatsScreen())),
+      GoRoute(path: '/shopping', builder: (_, _) => Narrow(const ShoppingScreen())),
+      GoRoute(path: '/receipt', builder: (_, _) => Narrow(const ReceiptScreen())),
+      GoRoute(path: '/recipes', builder: (_, _) => Narrow(const RecipesScreen())),
+      GoRoute(path: '/settings/ai', builder: (_, _) => Narrow(const AiSettingsScreen())),
+      GoRoute(path: '/history', builder: (_, _) => Narrow(const HistoryScreen())),
+      GoRoute(path: '/households', builder: (_, _) => Narrow(const HouseholdsScreen())),
+      GoRoute(
+        path: '/join/:code',
+        builder: (_, s) => Narrow(JoinScreen(code: s.pathParameters['code']!)),
+      ),
+      GoRoute(path: '/settings', builder: (_, _) => Narrow(const SettingsScreen())),
+      GoRoute(path: '/settings/notifications', builder: (_, _) => Narrow(const NotificationSettingsScreen())),
     ],
   );
 });
+
+/// Screens other than home are centred at a readable width on big screens.
+class Narrow extends StatelessWidget {
+  const Narrow(this.child, {super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) => box.maxWidth <= 840
+        ? child
+        : ColoredBox(
+            color: GlebaColors.backdrop(Theme.of(context).brightness),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Material(elevation: 1, child: child),
+              ),
+            ),
+          ),
+  );
+}
 
 class GlebaApp extends ConsumerWidget {
   const GlebaApp({super.key});
@@ -87,10 +117,12 @@ class GlebaApp extends ConsumerWidget {
       localizationsDelegates: const [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) => NotificationScheduler(
-        child: Builder(builder: (context) {
-          navigatorContext = context;
-          return child ?? const SizedBox();
-        }),
+        child: Builder(
+          builder: (context) {
+            navigatorContext = context;
+            return child ?? const SizedBox();
+          },
+        ),
       ),
     );
   }

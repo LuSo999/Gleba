@@ -10,7 +10,10 @@ import '../widgets/item_sheet.dart' show restock;
 /// Shared shopping list. "2 mléko" adds two milks; ticked items move to
 /// "Bought"; stock rules at the bottom refill the list automatically.
 class ShoppingScreen extends ConsumerStatefulWidget {
-  const ShoppingScreen({super.key});
+  const ShoppingScreen({super.key, this.embedded = false});
+
+  /// Without its own Scaffold/AppBar – a side panel on wide screens.
+  final bool embedded;
 
   @override
   ConsumerState<ShoppingScreen> createState() => _ShoppingScreenState();
@@ -76,9 +79,7 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
           ),
         );
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l.shoppingTitle)),
-      body: ListView(
+    final content = ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
           Padding(
@@ -128,8 +129,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
               ),
           ],
         ],
-      ),
     );
+    if (widget.embedded) {
+      return Column(children: [
+        _PanelTitle(icon: Icons.shopping_cart_outlined, text: l.shoppingTitle),
+        Expanded(child: content),
+      ]);
+    }
+    return Scaffold(appBar: AppBar(title: Text(l.shoppingTitle)), body: content);
   }
 
   static String _q(double q) => q == q.roundToDouble() ? '${q.toInt()}' : '$q';
@@ -171,4 +178,22 @@ Future<void> editStockRule(BuildContext context, WidgetRef ref, StockRule rule) 
       productKey: rule.productKey, name: rule.name, minQuantity: min, unit: rule.unit, categoryId: rule.categoryId);
   await repo.saveStockRule(h.id, updated);
   await restock(repo, h.id, user, rules: [updated]);
+}
+
+/// Header of a side panel on wide screens.
+class _PanelTitle extends StatelessWidget {
+  const _PanelTitle({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+        child: Row(children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Text(text, style: Theme.of(context).textTheme.titleMedium),
+        ]),
+      );
 }

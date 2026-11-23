@@ -69,7 +69,7 @@ cd functions && npm ci && npm test   # testy plánovače (časová pásma, tich�
 ```
 
 ### Nasazení serveru
-Nasazuje GitHub Action **Deploy to Firebase** (při změně v `main`, nebo ručně v záložce Actions). Potřebuje jednorázově tajný klíč:
+Nasazuje GitHub Action **Deploy to Firebase** při každé změně v `main` (nebo ručně v záložce Actions): web na Firebase Hosting (https://gleba-e9a60.web.app), Cloud Functions a pravidla Firestore. Potřebuje jednorázově tajný klíč:
 1. [Google Cloud konzole → IAM → Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts?project=gleba-e9a60) → **Create service account** (např. `github-deploy`).
 2. Role: **Editor** (Upravovatel). Pro osobní projekt nejjednodušší varianta; nasazení funkcí potřebuje přístup k Cloud Functions, Cloud Build, Artifact Registry, Cloud Scheduler a Firestore.
 3. U účtu → **Keys** → **Add key** → **JSON** → stáhne se soubor.

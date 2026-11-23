@@ -5,7 +5,8 @@
 - [ ] Firebase projekt (Auth, Firestore, Hosting), `flutterfire configure`
 - [x] Lokalizace CZ/EN (ARB), Material 3 téma světlé/tmavé
 - [x] CI v GitHub Actions: analýza, testy, build APK + web
-- [ ] Automatické nasazení webu na Firebase Hosting
+- [x] Automatické nasazení webu na Firebase Hosting (https://gleba-e9a60.web.app)
+- [x] Rozložení pro velkou obrazovku: lednice + „Spotřebuj nejdřív“ + nákupní seznam vedle sebe, ostatní obrazovky vystředěné
 - [x] Firestore pravidla
 - [ ] Testy pravidel v emulátoru
 

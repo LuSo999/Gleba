@@ -1,11 +1,11 @@
 name: Deploy to Firebase
 
-# Deploys the notification server (Cloud Functions) and Firestore rules.
-# Runs on every push to main, or manually: Actions → Deploy to Firebase → Run workflow.
+# Deploys the web app (Hosting), the notification/AI server (Cloud Functions)
+# and Firestore rules. Runs on every push to main, or manually:
+# Actions → Deploy to Firebase → Run workflow.
 on:
   push:
     branches: [main]
-    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'firebase.json']
   workflow_dispatch:
 
 concurrency: deploy
@@ -22,11 +22,21 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Install and test functions
         working-directory: functions
         run: |
           npm ci
           npm test
+
+      - name: Build web app
+        run: |
+          flutter pub get
+          flutter build web --release
 
       - name: Write service account key
         env:
@@ -37,7 +47,7 @@ jobs:
           fi
           printf '%s' "$KEY" > "$RUNNER_TEMP/sa.json"
 
-      - name: Deploy functions and Firestore rules
+      - name: Deploy hosting, functions and Firestore rules
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx --yes firebase-tools@latest deploy --only functions,firestore --project gleba-e9a60 --non-interactive --force
+        run: npx --yes firebase-tools@latest deploy --only hosting,functions,firestore --project gleba-e9a60 --non-interactive --force
