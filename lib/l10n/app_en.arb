@@ -298,5 +298,10 @@
   "deleteAccountText": "We delete your data and settings, remove you from shared households and delete households where you are the only member. This can't be undone.",
   "deleteAccountConfirm": "Delete permanently",
   "deleteAccountDone": "Your account was deleted.",
-  "privacyPolicy": "Privacy policy"
+  "privacyPolicy": "Privacy policy",
+  "receiptStepPhoto": "Preparing the photo…",
+  "receiptStepSending": "Sending the receipt…",
+  "receiptStepReading": "AI is reading the receipt… {seconds} s",
+  "receiptStepParsing": "Processing items…",
+  "receiptKeepsGoing": "You can rotate the phone or leave this screen – reading carries on and the result will wait for you."
 }

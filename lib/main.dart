@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +24,12 @@ Future<void> main() async {
   // Real paths on the web (gleba-e9a60.web.app/join/CODE), not #/join/CODE.
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
+  // Phones stay upright (photographing receipts, swiping cards); tablets and
+  // the web rotate freely.
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  if (!kIsWeb && view.physicalSize.shortestSide / view.devicePixelRatio < 600) {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
   final prefs = await SharedPreferences.getInstance();
 
   var firebaseReady = false;

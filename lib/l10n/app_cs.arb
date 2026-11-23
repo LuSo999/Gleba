@@ -480,5 +480,17 @@
   "deleteAccountText": "Smažeme vaše data a nastavení, odebereme vás ze sdílených domácností a smažeme domácnosti, kde jste jediný člen. Nejde to vrátit.",
   "deleteAccountConfirm": "Smazat natrvalo",
   "deleteAccountDone": "Účet byl smazán.",
-  "privacyPolicy": "Zásady ochrany soukromí"
+  "privacyPolicy": "Zásady ochrany soukromí",
+  "receiptStepPhoto": "Připravuji fotku…",
+  "receiptStepSending": "Odesílám účtenku…",
+  "receiptStepReading": "AI čte účtenku… {seconds} s",
+  "@receiptStepReading": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "receiptStepParsing": "Zpracovávám položky…",
+  "receiptKeepsGoing": "Můžete otočit telefon nebo odejít z obrazovky – čtení poběží dál a výsledek tu na vás počká."
 }

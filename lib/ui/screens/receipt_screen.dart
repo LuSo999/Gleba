@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -11,8 +14,8 @@ import '../../domain/shelf_life.dart';
 import '../labels.dart';
 import '../widgets/burst.dart';
 
-class _Line {
-  _Line(this.line)
+class ReceiptDraftLine {
+  ReceiptDraftLine(this.line)
       : selected = line.isFood,
         location = suggestLocation(line.categoryId) {
     expiry = suggestExpiry(line.categoryId, location, DateTime.now());
@@ -33,6 +36,63 @@ class _Line {
   }
 }
 
+enum ReceiptStage { idle, preparing, working, parsing, done, error }
+
+class ReceiptJob {
+  const ReceiptJob({this.stage = ReceiptStage.idle, this.startedAt, this.lines, this.error, this.saving = false});
+
+  final ReceiptStage stage;
+  final DateTime? startedAt;
+  final List<ReceiptDraftLine>? lines;
+
+  /// 'empty', 'no-provider' or the AI error message.
+  final String? error;
+  final bool saving;
+
+  bool get busy => stage == ReceiptStage.preparing || stage == ReceiptStage.working || stage == ReceiptStage.parsing;
+}
+
+/// Lives outside the screen, so reading a receipt survives rotating the
+/// phone, leaving the screen, or the activity being recreated: the result
+/// is waiting when you come back.
+class ReceiptJobNotifier extends Notifier<ReceiptJob> {
+  @override
+  ReceiptJob build() => const ReceiptJob();
+
+  void reset() => state = const ReceiptJob();
+
+  /// Line edits mutate the drafts in place; this just redraws.
+  void touch() => state = ReceiptJob(stage: state.stage, startedAt: state.startedAt, lines: state.lines, error: state.error);
+
+  void saving(bool v) =>
+      state = ReceiptJob(stage: state.stage, startedAt: state.startedAt, lines: state.lines, error: state.error, saving: v);
+
+  Future<void> start(XFile photo, String lang) async {
+    if (state.busy) return;
+    final ai = ref.read(aiServiceProvider);
+    if (!ai.enabledFor(AiFeature.receipt)) {
+      state = const ReceiptJob(stage: ReceiptStage.error, error: 'no-provider');
+      return;
+    }
+    final started = DateTime.now();
+    state = ReceiptJob(stage: ReceiptStage.preparing, startedAt: started);
+    try {
+      final bytes = await photo.readAsBytes();
+      state = ReceiptJob(stage: ReceiptStage.working, startedAt: started);
+      final text = await ai.run(AiFeature.receipt, receiptRequest(AiImage(bytes), lang));
+      state = ReceiptJob(stage: ReceiptStage.parsing, startedAt: started);
+      final lines = parseReceipt(text);
+      state = lines.isEmpty
+          ? const ReceiptJob(stage: ReceiptStage.error, error: 'empty')
+          : ReceiptJob(stage: ReceiptStage.done, lines: [for (final r in lines) ReceiptDraftLine(r)]);
+    } catch (e) {
+      state = ReceiptJob(stage: ReceiptStage.error, error: '$e');
+    }
+  }
+}
+
+final receiptJobProvider = NotifierProvider<ReceiptJobNotifier, ReceiptJob>(ReceiptJobNotifier.new);
+
 /// Photograph a receipt → AI lists the items → review → add them all at once.
 class ReceiptScreen extends ConsumerStatefulWidget {
   const ReceiptScreen({super.key});
@@ -41,48 +101,44 @@ class ReceiptScreen extends ConsumerStatefulWidget {
   ConsumerState<ReceiptScreen> createState() => _ReceiptScreenState();
 }
 
-class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
-  bool _busy = false;
-  String? _error;
-  List<_Line>? _lines;
+class _ReceiptScreenState extends ConsumerState<ReceiptScreen> with SingleTickerProviderStateMixin {
+  // Ticks while the AI works, to move the progress bar and the seconds.
+  late final _ticker = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+
+  @override
+  void initState() {
+    super.initState();
+    // Android may kill the app while the camera is open; recover that photo.
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      ImagePicker().retrieveLostData().then((r) {
+        final f = r.file;
+        if (f != null && mounted) _start(f);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  void _start(XFile photo) =>
+      ref.read(receiptJobProvider.notifier).start(photo, Localizations.localeOf(context).languageCode);
 
   Future<void> _pick(ImageSource source) async {
-    final l = context.l;
-    final ai = ref.read(aiServiceProvider);
-    final lang = Localizations.localeOf(context).languageCode;
-    if (!ai.enabledFor(AiFeature.receipt)) {
-      setState(() => _error = l.aiNoProvider);
-      return;
-    }
     final photo = await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 85);
-    if (photo == null) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-      _lines = null;
-    });
-    try {
-      final bytes = await photo.readAsBytes();
-      final text = await ai.run(AiFeature.receipt, receiptRequest(AiImage(bytes), lang));
-      final lines = parseReceipt(text);
-      setState(() {
-        _lines = [for (final r in lines) _Line(r)];
-        if (lines.isEmpty) _error = l.receiptEmpty;
-      });
-    } catch (e) {
-      setState(() => _error = l.aiError('$e'));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    if (photo != null && mounted) _start(photo);
   }
 
   Future<void> _save() async {
     final h = ref.read(activeHouseholdProvider);
     final user = ref.read(userProvider).value;
-    final lines = _lines?.where((x) => x.selected).toList() ?? const [];
-    if (h == null || user == null || lines.isEmpty) return;
+    final job = ref.read(receiptJobProvider);
+    final lines = job.lines?.where((x) => x.selected).toList() ?? const [];
+    if (h == null || user == null || lines.isEmpty || job.saving) return;
+    final notifier = ref.read(receiptJobProvider.notifier)..saving(true);
     final repo = ref.read(repositoryProvider);
-    setState(() => _busy = true);
     for (final x in lines) {
       await repo.addItem(
         h.id,
@@ -101,37 +157,75 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
         user,
       );
     }
+    notifier.reset();
     if (!mounted) return;
     showBurst(context, '🧾', particles: const ['✨', '🛒'], enabled: ref.read(settingsProvider).animations);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l.receiptSaved(lines.length))));
     Navigator.pop(context);
   }
 
+  /// Honest progress: known steps, and while the AI works an easing curve
+  /// that approaches but never reaches the end before the answer is in.
+  Widget _progress(BuildContext context, ReceiptJob job) {
+    final l = context.l;
+    return AnimatedBuilder(
+      animation: _ticker,
+      builder: (context, _) {
+        final secs = job.startedAt == null ? 0 : DateTime.now().difference(job.startedAt!).inMilliseconds / 1000;
+        final (value, label) = switch (job.stage) {
+          ReceiptStage.preparing => (0.05, l.receiptStepPhoto),
+          ReceiptStage.working when secs < 2 => (0.08 + secs * 0.02, l.receiptStepSending),
+          ReceiptStage.working => (0.12 + 0.8 * (1 - exp(-(secs - 2) / 14)), l.receiptStepReading(secs.round())),
+          _ => (0.95, l.receiptStepParsing),
+        };
+        return Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const _Spinning(emoji: '🧾'),
+            const SizedBox(height: 24),
+            LinearProgressIndicator(value: value, minHeight: 8, borderRadius: BorderRadius.circular(4)),
+            const SizedBox(height: 12),
+            Text(label, textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(l.receiptKeepsGoing, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
+          ]),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.l;
     final theme = Theme.of(context);
-    final lines = _lines;
+    final job = ref.watch(receiptJobProvider);
+    final lines = job.lines;
     final selected = lines?.where((x) => x.selected).length ?? 0;
+    if (job.busy && !_ticker.isAnimating) _ticker.repeat();
+    if (!job.busy && _ticker.isAnimating) _ticker.stop();
+    final error = switch (job.error) {
+      null => null,
+      'empty' => l.receiptEmpty,
+      'no-provider' => l.aiNoProvider,
+      final e => l.aiError(e),
+    };
+    void setState(VoidCallback f) {
+      f();
+      ref.read(receiptJobProvider.notifier).touch();
+    }
 
     Widget body;
-    if (_busy) {
-      body = Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const _Spinning(emoji: '🧾'),
-          const SizedBox(height: 16),
-          Text(l.receiptReading),
-        ]),
-      );
+    if (job.busy || job.saving) {
+      body = Center(child: _progress(context, job));
     } else if (lines == null || lines.isEmpty) {
       body = Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text('🧾', style: TextStyle(fontSize: 72)),
-            if (_error != null) ...[
+            if (error != null) ...[
               const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.error)),
+              Text(error, textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.error)),
             ],
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -228,7 +322,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l.receiptTitle)),
       body: body,
-      floatingActionButton: lines != null && lines.isNotEmpty && !_busy
+      floatingActionButton: lines != null && lines.isNotEmpty && !job.busy && !job.saving
           ? FloatingActionButton.extended(
               onPressed: selected == 0 ? null : _save,
               icon: const Icon(Icons.check),
