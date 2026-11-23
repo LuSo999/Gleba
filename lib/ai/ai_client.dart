@@ -18,6 +18,32 @@ class DirectAiClient {
         AiProvider.openai => _openai(key, r),
       };
 
+  /// Models this key can use (also validates the key).
+  Future<List<AiModelInfo>> listModels(AiProvider provider, String key) async {
+    final (url, headers) = switch (provider) {
+      AiProvider.anthropic => (
+          Uri.parse('https://api.anthropic.com/v1/models?limit=100'),
+          {
+            'x-api-key': key,
+            'anthropic-version': '2026-10-21',
+            if (kIsWeb) 'anthropic-dangerous-direct-browser-access': 'true',
+          }
+        ),
+      AiProvider.gemini => (
+          Uri.parse('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200'),
+          {'x-goog-api-key': key}
+        ),
+      AiProvider.openai => (Uri.parse('https://api.openai.com/v1/models'), {'authorization': 'Bearer $key'}),
+    };
+    final res = await _http.get(url, headers: headers).timeout(const Duration(seconds: 20));
+    final json = jsonDecode(utf8.decode(res.bodyBytes));
+    if (res.statusCode >= 400) {
+      final err = json is Map ? json['error'] : null;
+      throw AiException(err is Map ? '${err['message'] ?? err}' : 'HTTP ${res.statusCode}');
+    }
+    return parseModelList(provider, json as Map<String, dynamic>);
+  }
+
   Future<Map<String, dynamic>> _post(Uri url, Map<String, String> headers, Object body) async {
     final res = await _http
         .post(url, headers: {'content-type': 'application/json', ...headers}, body: jsonEncode(body))
@@ -122,5 +148,33 @@ class DirectAiClient {
       },
     );
     return ((json['choices'] as List?)?.firstOrNull as Map?)?['message']?['content'] as String? ?? '';
+  }
+}
+
+/// Provider model lists → chat/vision models only.
+List<AiModelInfo> parseModelList(AiProvider provider, Map<String, dynamic> json) {
+  switch (provider) {
+    case AiProvider.anthropic:
+      return [
+        for (final m in (json['data'] as List? ?? const []))
+          if (m is Map && m['id'] is String) AiModelInfo(m['id'] as String, m['display_name'] as String?),
+      ];
+    case AiProvider.gemini:
+      return [
+        for (final m in (json['models'] as List? ?? const []))
+          if (m is Map &&
+              (m['supportedGenerationMethods'] as List? ?? const []).contains('generateContent') &&
+              '${m['name']}'.contains('gemini') &&
+              !RegExp(r'embedding|aqa|imagen|tts|live|image-generation').hasMatch('${m['name']}'))
+            AiModelInfo('${m['name']}'.replaceFirst('models/', ''), m['displayName'] as String?),
+      ];
+    case AiProvider.openai:
+      return [
+        for (final m in (json['data'] as List? ?? const []))
+          if (m is Map &&
+              RegExp(r'^(gpt-|o\d|chatgpt-)').hasMatch('${m['id']}') &&
+              !RegExp(r'audio|realtime|tts|transcribe|image|search|embedding|instruct|moderation').hasMatch('${m['id']}'))
+            AiModelInfo('${m['id']}'),
+      ]..sort((a, b) => b.id.compareTo(a.id));
   }
 }

@@ -112,4 +112,50 @@ void main() {
     expect((plan[0].title, plan[0].uses.single, plan[0].missing.single), ('Kuře na paprice', 'Kuřecí prsa', 'Smetana'));
     expect((plan[1].day, plan[1].slot), (4, 'dinner')); // clamped / fixed
   });
+
+  test('model lists are filtered and the right models recommended', () {
+    final claude = parseModelList(AiProvider.anthropic, {
+      'data': [
+        {'id': 'claude-opus-5-5', 'display_name': 'Claude Opus 5.5'},
+        {'id': 'claude-sonnet-5-5', 'display_name': 'Claude Sonnet 5.5'},
+        {'id': 'claude-haiku-5-5', 'display_name': 'Claude Haiku 5.5'},
+        {'id': 'claude-haiku-4-5', 'display_name': 'Claude Haiku 4.5'},
+      ],
+    });
+    expect(recommendedModel(AiProvider.anthropic, AiTier.fast, claude), 'claude-haiku-5-5');
+    expect(recommendedModel(AiProvider.anthropic, AiTier.smart, claude), 'claude-opus-5-5');
+    expect(claude.first.label, 'Claude Opus 5.5 (claude-opus-5-5)');
+
+    final gemini = parseModelList(AiProvider.gemini, {
+      'models': [
+        {'name': 'models/gemini-2.5-flash', 'supportedGenerationMethods': ['generateContent']},
+        {'name': 'models/gemini-2.5-flash-lite', 'supportedGenerationMethods': ['generateContent']},
+        {'name': 'models/gemini-2.5-pro', 'supportedGenerationMethods': ['generateContent']},
+        {'name': 'models/text-embedding-004', 'supportedGenerationMethods': ['embedContent']},
+        {'name': 'models/gemini-2.5-flash-preview-tts', 'supportedGenerationMethods': ['generateContent']},
+      ],
+    });
+    expect(gemini.map((m) => m.id), ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro']);
+    expect(recommendedModel(AiProvider.gemini, AiTier.fast, gemini), 'gemini-2.5-flash');
+    expect(recommendedModel(AiProvider.gemini, AiTier.smart, gemini), 'gemini-2.5-pro');
+
+    final openai = parseModelList(AiProvider.openai, {
+      'data': [
+        {'id': 'gpt-5'}, {'id': 'gpt-5-mini'}, {'id': 'gpt-4o-audio-preview'}, {'id': 'text-embedding-3-small'}, {'id': 'o3'},
+      ],
+    });
+    expect(openai.map((m) => m.id), ['o3', 'gpt-5-mini', 'gpt-5']);
+    expect(recommendedModel(AiProvider.openai, AiTier.fast, openai), 'gpt-5-mini');
+    expect(recommendedModel(AiProvider.openai, AiTier.smart, openai), 'gpt-5');
+  });
+
+  test('listing models checks the key', () async {
+    final ok = DirectAiClient(client: MockClient((r) async {
+      expect(r.url.toString(), 'https://api.anthropic.com/v1/models?limit=100');
+      return http.Response('{"data":[{"id":"claude-haiku-5-5"}]}', 200);
+    }));
+    expect((await ok.listModels(AiProvider.anthropic, 'k')).single.id, 'claude-haiku-5-5');
+    final bad = DirectAiClient(client: MockClient((_) async => http.Response('{"error":{"message":"invalid x-api-key"}}', 401)));
+    await expectLater(bad.listModels(AiProvider.anthropic, 'k'), throwsA(isA<AiException>()));
+  });
 }

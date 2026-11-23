@@ -165,7 +165,7 @@
   "aiGetKey": "Get a key at: {url}",
   "aiFeatures": "Who does what",
   "aiFeatureReceipt": "Receipts",
-  "aiFeatureRecipe": "Recipes",
+  "aiFeatureRecipe": "Recipes and meal plan",
   "aiFeatureProduct": "Unknown product from a photo",
   "aiFeatureDate": "Date from a photo (when on-device reading fails)",
   "aiAuto": "Automatic",
@@ -303,5 +303,17 @@
   "receiptStepSending": "Sending the receipt…",
   "receiptStepReading": "AI is reading the receipt… {seconds} s",
   "receiptStepParsing": "Processing items…",
-  "receiptKeepsGoing": "You can rotate the phone or leave this screen – reading carries on and the result will wait for you."
+  "receiptKeepsGoing": "You can rotate the phone or leave this screen – reading carries on and the result will wait for you.",
+  "aiProviders": "Providers and keys",
+  "aiKeyOk": "✓ Key works · {count} models",
+  "aiKeyChecking": "Checking the key…",
+  "aiKeyBad": "✗ Key doesn't work: {msg}",
+  "aiCheck": "Check key",
+  "aiRecommended": "Recommended",
+  "aiOther": "Other…",
+  "aiOtherModel": "Model name",
+  "aiTierFast": "A fast, cheap model is enough",
+  "aiTierSmart": "A smarter model is recommended",
+  "aiNoKeyYet": "Add a key above first.",
+  "aiProvider": "Provider"
 }

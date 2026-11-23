@@ -94,3 +94,40 @@ export function callProvider(provider: Provider, key: string, model: string | un
     case 'openai': return callOpenAi(key, m, r);
   }
 }
+
+export interface ModelInfo { id: string; name?: string }
+
+/** Chat/vision models a key can use (also validates the key). */
+export async function listModels(provider: Provider, key: string): Promise<ModelInfo[]> {
+  switch (provider) {
+    case 'anthropic': {
+      const client = new Anthropic({ apiKey: key });
+      const out: ModelInfo[] = [];
+      for await (const m of client.models.list({ limit: 100 })) out.push({ id: m.id, name: m.display_name });
+      return out;
+    }
+    case 'gemini': {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', {
+        headers: { 'x-goog-api-key': key },
+      });
+      const json: any = await res.json().catch(() => ({}));
+      if (!res.ok) throw new AiError(json?.error?.message ?? `HTTP ${res.status}`);
+      return (json.models ?? [])
+        .filter((m: any) => (m.supportedGenerationMethods ?? []).includes('generateContent') &&
+          String(m.name).includes('gemini') && !/embedding|aqa|imagen|tts|live|image-generation/.test(m.name))
+        .map((m: any) => ({ id: String(m.name).replace('models/', ''), name: m.displayName }));
+    }
+    case 'openai': {
+      const res = await fetch('https://api.openai.com/v1/models', { headers: { authorization: `Bearer ${key}` } });
+      const json: any = await res.json().catch(() => ({}));
+      if (!res.ok) throw new AiError(json?.error?.message ?? `HTTP ${res.status}`);
+      return (json.data ?? [])
+        .map((m: any) => String(m.id))
+        .filter((id: string) => /^(gpt-|o\d|chatgpt-)/.test(id) &&
+          !/audio|realtime|tts|transcribe|image|search|embedding|instruct|moderation/.test(id))
+        .sort()
+        .reverse()
+        .map((id: string) => ({ id }));
+    }
+  }
+}

@@ -17,7 +17,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 
-import { AiError, callProvider, defaultModels, type Provider } from './ai.js';
+import { AiError, callProvider, defaultModels, listModels, type Provider } from './ai.js';
 import { activityText, langOf, texts } from './i18n.js';
 import { appUuid, offHasProduct, submitToOff, type OffAccount } from './off.js';
 import { defaultPrefs, plan, type Item, type Prefs, type Rule } from './planner.js';
@@ -202,14 +202,16 @@ export const aiSetKey = onCall({ region: REGION }, async (req) => {
 
 /** Runs an AI request with the household's shared key. */
 export const aiProxy = onCall({ region: REGION, timeoutSeconds: 120, memory: '512MiB' }, async (req) => {
-  const { householdId, provider, prompt, images, schema, maxTokens } = req.data ?? {};
+  const { householdId, provider, prompt, images, schema, maxTokens, model } = req.data ?? {};
   await requireMember(req.auth?.uid, householdId);
   if (!providers.includes(provider)) throw new HttpsError('invalid-argument', 'Unknown provider');
   if (typeof prompt !== 'string' || prompt.length > 20000) throw new HttpsError('invalid-argument', 'Bad prompt');
   const secret = (await db.doc(`households/${householdId}/secrets/ai`).get()).get(provider);
   if (!secret?.key) throw new HttpsError('failed-precondition', 'No shared key for this provider.');
   try {
-    const text = await callProvider(provider, secret.key, secret.model, {
+    // A per-feature model chosen in the app wins over the key's default.
+    const useModel = typeof model === 'string' && /^[\w.\-:/]{1,100}$/.test(model) ? model : secret.model;
+    const text = await callProvider(provider, secret.key, useModel, {
       prompt,
       images: Array.isArray(images) ? images.slice(0, 4) : [],
       schema: schema ?? null,
@@ -219,6 +221,20 @@ export const aiProxy = onCall({ region: REGION, timeoutSeconds: 120, memory: '51
   } catch (e) {
     logger.warn('ai call failed', { provider, error: String(e) });
     throw new HttpsError('unavailable', e instanceof AiError ? e.message : 'AI request failed');
+  }
+});
+
+/** Models the household's shared key can use (the key never leaves the server). */
+export const aiListModels = onCall({ region: REGION, timeoutSeconds: 30 }, async (req) => {
+  const { householdId, provider } = req.data ?? {};
+  await requireMember(req.auth?.uid, householdId);
+  if (!providers.includes(provider)) throw new HttpsError('invalid-argument', 'Unknown provider');
+  const secret = (await db.doc(`households/${householdId}/secrets/ai`).get()).get(provider);
+  if (!secret?.key) throw new HttpsError('failed-precondition', 'No shared key for this provider.');
+  try {
+    return { models: await listModels(provider, secret.key) };
+  } catch (e) {
+    throw new HttpsError('unavailable', e instanceof AiError ? e.message : 'Could not list models');
   }
 });
 

@@ -241,7 +241,7 @@
   },
   "aiFeatures": "Kdo co dělá",
   "aiFeatureReceipt": "Účtenky",
-  "aiFeatureRecipe": "Recepty",
+  "aiFeatureRecipe": "Recepty a jídelníček",
   "aiFeatureProduct": "Neznámý produkt z fotky",
   "aiFeatureDate": "Datum z fotky (když nestačí čtení v telefonu)",
   "aiAuto": "Automaticky",
@@ -492,5 +492,29 @@
     }
   },
   "receiptStepParsing": "Zpracovávám položky…",
-  "receiptKeepsGoing": "Můžete otočit telefon nebo odejít z obrazovky – čtení poběží dál a výsledek tu na vás počká."
+  "receiptKeepsGoing": "Můžete otočit telefon nebo odejít z obrazovky – čtení poběží dál a výsledek tu na vás počká.",
+  "aiProviders": "Poskytovatelé a klíče",
+  "aiKeyOk": "✓ Klíč funguje · {count} modelů",
+  "@aiKeyOk": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiKeyChecking": "Ověřuji klíč…",
+  "aiKeyBad": "✗ Klíč nefunguje: {msg}",
+  "@aiKeyBad": {
+    "placeholders": {
+      "msg": {}
+    }
+  },
+  "aiCheck": "Ověřit klíč",
+  "aiRecommended": "Doporučený",
+  "aiOther": "Jiný…",
+  "aiOtherModel": "Název modelu",
+  "aiTierFast": "Stačí rychlý a levný model",
+  "aiTierSmart": "Doporučujeme chytřejší model",
+  "aiNoKeyYet": "Nejdřív přidejte klíč nahoře.",
+  "aiProvider": "Poskytovatel"
 }
