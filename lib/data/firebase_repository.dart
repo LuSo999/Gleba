@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
+import '../domain/shared_products.dart';
 import '../domain/shopping.dart';
 import 'repository.dart';
 
@@ -250,6 +251,53 @@ class FirestoreRepository implements GlebaRepository {
       shelfLifeDays: (d['shelfLifeDays'] as num?)?.toInt(),
       source: 'household',
     );
+  }
+
+  @override
+  Future<ProductInfo?> sharedProduct(String ean) async {
+    if (!isShareableEan(ean)) return null;
+    final d = (await _db.collection('products').doc(ean).get()).data();
+    if (d == null || (d['name'] as String?)?.isNotEmpty != true) return null;
+    final stats = ShelfLifeStats.fromMap(d['shelfLifeStats']);
+    return ProductInfo(
+      ean: ean,
+      name: d['name'] as String,
+      brand: d['brand'] as String?,
+      imageUrl: d['imageUrl'] as String?,
+      categoryId: d['categoryId'] as String?,
+      shelfLifeDays: stats.suggestedDays,
+      source: 'gleba',
+    );
+  }
+
+  @override
+  Future<void> contributeProduct(PantryItem item, {int? shelfLifeDays}) async {
+    final ean = item.ean;
+    if (!isShareableEan(ean)) return;
+    final ref = _db.collection('products').doc(ean);
+    try {
+      await _db.runTransaction((tx) async {
+        final snap = await tx.get(ref);
+        if (!snap.exists) {
+          tx.set(ref, {
+            'name': item.name,
+            'brand': item.brand,
+            'categoryId': item.categoryId,
+            'imageUrl': item.imageUrl,
+            'source': 'gleba',
+            'shelfLifeStats': (shelfLifeDays == null ? const ShelfLifeStats() : const ShelfLifeStats().add(shelfLifeDays))
+                .toMap(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        } else if (shelfLifeDays != null) {
+          final stats = ShelfLifeStats.fromMap(snap.data()?['shelfLifeStats']).add(shelfLifeDays);
+          tx.update(ref, {'shelfLifeStats': stats.toMap(), 'updatedAt': FieldValue.serverTimestamp()});
+        }
+      });
+    } catch (e) {
+      // Sharing is best-effort (e.g. offline); the household copy is already saved.
+      debugPrint('contributeProduct failed: $e');
+    }
   }
 
   @override

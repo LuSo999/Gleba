@@ -4,7 +4,7 @@
 Pořadí dotazů:
 1. **Lokální mezipaměť** v zařízení (funguje offline).
 2. **Databáze domácnosti** `households/{id}/products/{ean}`: co jsme už jednou zadali, včetně naší kategorie, umístění a obvyklé trvanlivosti.
-3. **Sdílená databáze Gleba** `products/{ean}`: co zadali ostatní uživatelé (bez osobních údajů). Postupně zaplní mezery v českém sortimentu.
+3. **Sdílená databáze Gleba** `products/{ean}`: co zadali ostatní uživatelé (bez osobních údajů) + průměrná trvanlivost z dat na obalech. Název cizí položky nejde přepsat; interní kódy obchodů (20–29) se nesdílí.
 4. **[Open Food Facts](https://world.openfoodfacts.org)**: otevřená a bezplatná databáze potravin (licence ODbL). Obsahuje název, značku, foto, kategorie, alergeny a Nutri-Score. České pokrytí je slušné u značkových výrobků, slabší u privátních značek obchodů.
 5. **Ručně / AI:** pokud nic nenajdeme, uživatel vyfotí obal a vyplní název (nebo ho přečte AI).
 

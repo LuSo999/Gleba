@@ -102,11 +102,26 @@ service cloud.firestore {
     // ---- Shared product database (crowd-sourced, no personal data) ------------
     match /products/{ean} {
       allow read: if signedIn();
-      allow create, update: if signedIn()
+
+      // New product: name, category and at most one shelf-life sample.
+      allow create: if signedIn()
+        && ean.matches('^[0-9]{8}$|^[0-9]{13}$')
         && request.resource.data.keys().hasOnly(
           ['name', 'brand', 'categoryId', 'imageUrl', 'shelfLifeStats', 'source', 'updatedAt'])
         && request.resource.data.name is string
-        && request.resource.data.name.size() <= 200;
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.categoryId is string
+        && request.resource.data.shelfLifeStats.count <= 1;
+
+      // Existing product: nobody can rename someone else's entry; only one
+      // more shelf-life sample may be added at a time.
+      allow update: if signedIn()
+        && onlyChanges(['shelfLifeStats', 'updatedAt'])
+        && request.resource.data.shelfLifeStats.count == resource.data.shelfLifeStats.count + 1
+        && request.resource.data.shelfLifeStats.avgDays is number
+        && request.resource.data.shelfLifeStats.avgDays >= 0
+        && request.resource.data.shelfLifeStats.avgDays <= 3650;
     }
   }
 }

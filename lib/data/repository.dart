@@ -74,6 +74,13 @@ abstract class GlebaRepository {
   Future<ProductInfo?> householdProduct(String householdId, String ean);
   Future<void> rememberProduct(String householdId, PantryItem item);
 
+  /// Gleba's shared product database (all users), see domain/shared_products.dart.
+  Future<ProductInfo?> sharedProduct(String ean);
+
+  /// Adds the product to the shared database, or – when it's already there –
+  /// adds [shelfLifeDays] (only for dates read from the package) to its average.
+  Future<void> contributeProduct(PantryItem item, {int? shelfLifeDays});
+
   Future<PantryItem?> getItem(String householdId, String itemId);
 
   // ---- Per-user notification settings ----

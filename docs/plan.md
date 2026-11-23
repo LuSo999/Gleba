@@ -15,7 +15,7 @@
 - [x] Domácnosti: vytvoření, přepínání, pozvánka odkazem/kódem, odchod
 - [x] Skener: EAN-13/8, UPC, GS1 DataMatrix/QR/128 (parsování AI 15/17), hromadný režim
 - [x] Vyhledání produktu: domácnost → Open Food Facts → ručně
-- [ ] Sdílená databáze produktů Gleba
+- [x] Sdílená databáze produktů Gleba (bez osobních údajů, průměrná trvanlivost, interní kódy obchodů se nesdílí)
 - [x] Datum: ručně, z GS1 kódu, návrh podle kategorie
 - [x] Parser dat z textu (připraven pro OCR)
 - [x] Focení data – ML Kit OCR (Android)

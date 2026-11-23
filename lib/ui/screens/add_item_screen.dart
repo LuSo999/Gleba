@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -105,7 +107,11 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
         _message ??= context.l.productNotFound;
         return;
       }
-      _message = context.l.productFound(info.source == 'household' ? '🏠' : 'Open Food Facts');
+      _message = context.l.productFound(switch (info.source) {
+        'household' => '🏠',
+        'gleba' => 'Gleba 🫓',
+        _ => 'Open Food Facts',
+      });
       _name.text = info.name;
       _brand.text = info.brand ?? '';
       if (info.locationType != null && !_locationTouched) {
@@ -236,7 +242,16 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       source: _source,
       frozenAt: loc == LocationType.freezer && _categoryId != 'frozen' ? DateTime.now() : null,
     );
-    await ref.read(repositoryProvider).addItem(h.id, item, user);
+    final repo = ref.read(repositoryProvider);
+    await repo.addItem(h.id, item, user);
+    // Share with other Gleba users; the shelf life only counts when the date
+    // was read from the package (not our own suggestion).
+    unawaited(repo.contributeProduct(
+      item,
+      shelfLifeDays: _dateOrigin == _DateOrigin.suggested
+          ? null
+          : dateOnly(_expiry).difference(dateOnly(DateTime.now())).inDays,
+    ));
     if (!mounted) return;
     showBurst(context, categoryById(_categoryId).emoji,
         particles: const ['❄️', '✨'], enabled: ref.read(settingsProvider).animations);

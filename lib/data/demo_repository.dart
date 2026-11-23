@@ -3,6 +3,7 @@ import 'dart:async';
 import '../domain/history.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
+import '../domain/shared_products.dart';
 import '../domain/shopping.dart';
 import 'repository.dart';
 
@@ -49,6 +50,7 @@ class DemoRepository implements GlebaRepository {
   final _items = <String, Map<String, PantryItem>>{};
   final _products = <String, ProductInfo>{};
   final _invites = <String, InviteInfo>{};
+  final _shared = <String, (ProductInfo, ShelfLifeStats)>{};
   final _rules = <String, NotificationRule>{};
   final _events = <String, List<HistoryEvent>>{};
   final _shopping = <String, Map<String, ShoppingEntry>>{};
@@ -331,5 +333,29 @@ class DemoRepository implements GlebaRepository {
   Future<void> deleteStockRule(String householdId, String productKey) async {
     _stock[householdId]?.remove(productKey);
     _changed();
+  }
+
+  @override
+  Future<ProductInfo?> sharedProduct(String ean) async {
+    final e = _shared[ean];
+    if (e == null) return null;
+    final (p, stats) = e;
+    return ProductInfo(
+        ean: ean, name: p.name, brand: p.brand, categoryId: p.categoryId, shelfLifeDays: stats.suggestedDays, source: 'gleba');
+  }
+
+  @override
+  Future<void> contributeProduct(PantryItem item, {int? shelfLifeDays}) async {
+    final ean = item.ean;
+    if (!isShareableEan(ean)) return;
+    final e = _shared[ean];
+    if (e == null) {
+      _shared[ean!] = (
+        ProductInfo(ean: ean, name: item.name, brand: item.brand, categoryId: item.categoryId),
+        shelfLifeDays == null ? const ShelfLifeStats() : const ShelfLifeStats().add(shelfLifeDays),
+      );
+    } else if (shelfLifeDays != null) {
+      _shared[ean!] = (e.$1, e.$2.add(shelfLifeDays));
+    }
   }
 }
