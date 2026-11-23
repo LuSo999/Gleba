@@ -28,8 +28,8 @@
 - [x] Alergeny, Nutri-Score
 
 ## Fáze 2: Chytré funkce
-- [ ] AI: Gemini, OpenAI, Claude – jen vlastní klíče uživatelů (v zařízení / sdílený pro domácnost přes Cloud Functions), poskytovatel volitelný pro každou funkci
-- [ ] Účtenky, recepty (+ „zkopírovat zadání“), AI fallback na datum
+- [x] AI: Gemini, OpenAI, Claude – jen vlastní klíče uživatelů (v zařízení / sdílený pro domácnost přes Cloud Functions), poskytovatel volitelný pro každou funkci
+- [x] Účtenky, recepty (+ „zkopírovat zadání“), AI fallback na datum, neznámý produkt z fotky
 - [ ] Statistiky, nákupní seznam, minimální zásoby
 - [ ] Inventurní režim
 - [ ] Widget

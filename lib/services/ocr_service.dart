@@ -8,14 +8,16 @@ class OcrService {
   /// ML Kit runs on Android only; the web falls back to manual entry.
   static bool get supported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  /// Returns the recognised text, or null when the user cancelled.
-  static Future<String?> captureText() async {
-    final photo = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 2000, imageQuality: 90);
-    if (photo == null) return null;
+  /// Takes a photo; null when the user cancelled.
+  static Future<XFile?> capture() =>
+      ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 88);
+
+  /// Reads the text on [photo] on the device (Android only).
+  static Future<String> recognize(XFile photo) async {
+    if (!supported) return '';
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
-      final result = await recognizer.processImage(InputImage.fromFilePath(photo.path));
-      return result.text;
+      return (await recognizer.processImage(InputImage.fromFilePath(photo.path))).text;
     } finally {
       await recognizer.close();
     }

@@ -3,6 +3,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../app_state.dart';
+import '../../ai/ai_models.dart';
+import '../../ai/ai_service.dart';
+import '../../ai/ai_tasks.dart';
 import '../../domain/expiry_date_parser.dart';
 import '../../domain/gs1_parser.dart';
 import '../../domain/models.dart';
@@ -132,15 +135,29 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   Future<void> _photoDate() async {
     final l = context.l;
     final messenger = ScaffoldMessenger.of(context);
-    final String? text;
+    final ai = ref.read(aiServiceProvider);
+    final photo = await OcrService.capture();
+    if (photo == null || !mounted) return;
+    List<ExpiryCandidate> candidates;
     try {
-      text = await OcrService.captureText();
+      final text = await OcrService.recognize(photo);
+      candidates = findExpiryCandidates(text).where((c) => c.score > 0).take(4).toList();
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
-      return;
+      candidates = const [];
     }
-    if (text == null || !mounted) return;
-    final candidates = findExpiryCandidates(text).where((c) => c.score > 0).take(4).toList();
+    // On-device reading found nothing → ask the AI, if the user has a key.
+    if (candidates.isEmpty && ai.enabledFor(AiFeature.date)) {
+      messenger.showSnackBar(SnackBar(content: Text(l.aiReadingDate)));
+      try {
+        final res = parseDate(await ai.run(AiFeature.date, dateRequest(AiImage(await photo.readAsBytes()), DateTime.now())));
+        if (res != null) {
+          candidates = [ExpiryCandidate(res.date, 100, dateType: res.type, matched: 'AI')];
+        }
+      } catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text(l.aiError('$e'))));
+      }
+    }
+    if (!mounted) return;
     if (candidates.isEmpty) {
       messenger.showSnackBar(SnackBar(content: Text(l.dateNotFound)));
       return;
@@ -170,6 +187,31 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       if (chosen.dateType != null) _dateType = chosen.dateType!;
       _dateOrigin = _DateOrigin.photo;
     });
+  }
+
+  Future<void> _productFromPhoto() async {
+    final l = context.l;
+    final messenger = ScaffoldMessenger.of(context);
+    final photo = await OcrService.capture();
+    if (photo == null) return;
+    setState(() => _lookingUp = true);
+    try {
+      final lang = mounted ? Localizations.localeOf(context).languageCode : 'cs';
+      final p = parseProduct(await ref
+          .read(aiServiceProvider)
+          .run(AiFeature.product, productRequest(AiImage(await photo.readAsBytes()), lang)));
+      if (!mounted) return;
+      setState(() {
+        _name.text = p.name;
+        _brand.text = p.brand ?? '';
+        _message = null;
+        _applyCategory(p.categoryId);
+      });
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.aiError('$e'))));
+    } finally {
+      if (mounted) setState(() => _lookingUp = false);
+    }
   }
 
   Future<void> _save({bool next = false}) async {
@@ -275,6 +317,16 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                       ),
                     ),
                   if (_ean != null) Text('EAN $_ean', style: theme.textTheme.labelSmall),
+                  if (_product == null &&
+                      widget.mode != AddMode.leftover &&
+                      ref.watch(aiServiceProvider).enabledFor(AiFeature.product)) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _lookingUp ? null : _productFromPhoto,
+                      icon: const Icon(Icons.auto_awesome),
+                      label: Text(l.productFromPhoto),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _name,
@@ -365,7 +417,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                     trailing: const Icon(Icons.edit_calendar),
                     onTap: _pickDate,
                   ),
-                  if (OcrService.supported) ...[
+                  if (OcrService.supported || ref.watch(aiServiceProvider).enabledFor(AiFeature.date)) ...[
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: _photoDate,

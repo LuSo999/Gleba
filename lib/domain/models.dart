@@ -177,16 +177,24 @@ class PantryItem {
 }
 
 class Household {
-  const Household({required this.id, required this.name, required this.memberIds});
+  const Household({required this.id, required this.name, required this.memberIds, this.aiShared = const {}});
 
   final String id;
   final String name;
   final List<String> memberIds;
 
+  /// AI providers with a key shared by the household: provider name → model.
+  /// The keys themselves live server-side only.
+  final Map<String, String> aiShared;
+
   factory Household.fromMap(String id, Map<String, Object?> m) => Household(
         id: id,
         name: (m['name'] as String?) ?? '',
         memberIds: List<String>.from((m['memberIds'] as List?) ?? const []),
+        aiShared: {
+          for (final e in ((m['ai'] as Map?) ?? const {}).entries)
+            if (e.value is Map) '${e.key}': '${(e.value as Map)['model'] ?? ''}',
+        },
       );
 }
 

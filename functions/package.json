@@ -3,12 +3,15 @@
   "private": true,
   "description": "Gleba server: expiry notifications via Firebase Cloud Messaging",
   "main": "lib/index.js",
-  "engines": { "node": "22" },
+  "engines": {
+    "node": "22"
+  },
   "scripts": {
     "build": "tsc",
     "test": "tsc && node --test lib/*.test.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0",
     "firebase-admin": "^14.5.1",
     "firebase-functions": "^7.4.0"
   },

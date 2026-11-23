@@ -51,6 +51,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: l.recipesTitle,
+            icon: const Icon(Icons.restaurant_menu),
+            onPressed: () => context.push('/recipes'),
+          ),
+          IconButton(
             tooltip: l.historyTitle,
             icon: const Icon(Icons.history),
             onPressed: () => context.push('/history'),
@@ -139,9 +144,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.receipt_long),
-              title: const Text('🧾'),
-              subtitle: Text(l.comingSoon),
-              enabled: false,
+              title: Text(l.receiptTitle),
+              onTap: () => _go(ctx, '/receipt'),
             ),
           ],
         ),

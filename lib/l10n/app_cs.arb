@@ -220,5 +220,65 @@
   "othersActivityText": "Souhrn toho, co ostatní přidali, snědli nebo vyhodili",
   "quietHours": "Nerušit",
   "from": "Od",
-  "to": "Do"
+  "to": "Do",
+  "aiTitle": "AI asistent",
+  "aiIntro": "Gleba používá vaše vlastní API klíče. Platíte přímo poskytovateli podle spotřeby, Gleba za AI nic neúčtuje.",
+  "aiNotSet": "Nenastaveno",
+  "aiOnDevice": "V tomto zařízení",
+  "aiSharedHousehold": "Sdíleno s domácností",
+  "aiSetKey": "Zadat klíč",
+  "aiRemove": "Odebrat",
+  "aiKey": "API klíč",
+  "aiModel": "Model",
+  "aiDeviceOnly": "Jen v tomto zařízení",
+  "aiShareHousehold": "Sdílet s domácností",
+  "aiShareHint": "Klíč se uloží na server a ostatní členové ho mohou používat, ale nikdy ho neuvidí.",
+  "aiGetKey": "Kde klíč získat: {url}",
+  "@aiGetKey": {
+    "placeholders": {
+      "url": {}
+    }
+  },
+  "aiFeatures": "Kdo co dělá",
+  "aiFeatureReceipt": "Účtenky",
+  "aiFeatureRecipe": "Recepty",
+  "aiFeatureProduct": "Neznámý produkt z fotky",
+  "aiFeatureDate": "Datum z fotky (když nestačí čtení v telefonu)",
+  "aiAuto": "Automaticky",
+  "aiNoProvider": "Nejdřív zadejte API klíč v Nastavení → AI asistent.",
+  "aiError": "AI selhala: {msg}",
+  "@aiError": {
+    "placeholders": {
+      "msg": {}
+    }
+  },
+  "receiptTitle": "Účtenka",
+  "receiptTake": "Vyfotit účtenku",
+  "receiptGallery": "Vybrat z galerie",
+  "receiptReading": "Čtu účtenku…",
+  "receiptSave": "Uložit vybrané ({count})",
+  "@receiptSave": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiptEmpty": "Na účtence jsem nenašel žádné položky.",
+  "receiptSaved": "Přidáno položek: {count}",
+  "@receiptSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recipesTitle": "Recepty",
+  "recipesPick": "Z čeho vařit",
+  "recipesWishes": "Přání (např. vegetariánské, do 30 minut)",
+  "recipesSuggest": "Navrhnout recepty",
+  "recipesCopy": "Zkopírovat zadání pro AI",
+  "recipesThinking": "Vymýšlím recepty…",
+  "productFromPhoto": "Rozpoznat z fotky obalu (AI)",
+  "aiReadingDate": "Čtu datum pomocí AI…"
 }

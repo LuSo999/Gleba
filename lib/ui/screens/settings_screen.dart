@@ -56,6 +56,12 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/notifications'),
           ),
+          ListTile(
+            leading: const Icon(Icons.auto_awesome),
+            title: Text(l.aiTitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/ai'),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),

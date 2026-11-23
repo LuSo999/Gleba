@@ -13,8 +13,10 @@ import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 
+import { AiError, callProvider, defaultModels, type Provider } from './ai.js';
 import { activityText, langOf, texts } from './i18n.js';
 import { defaultPrefs, plan, type Item, type Prefs, type Rule } from './planner.js';
 import { localDate, localMinutes } from './time.js';
@@ -160,3 +162,60 @@ export const notify = onSchedule(
     logger.info('notify done', { users: uids.size, at: localDate(now, 'Europe/Prague') });
   },
 );
+
+// ---------------------------------------------------------------------------
+// AI with the household's shared API key (key stays on the server).
+
+const providers = ['gemini', 'openai', 'anthropic'] as const;
+
+async function requireMember(uid: string | undefined, hid: unknown) {
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.');
+  if (typeof hid !== 'string' || !hid) throw new HttpsError('invalid-argument', 'householdId missing');
+  const h = await db.doc(`households/${hid}`).get();
+  if (!h.exists || !(h.get('memberIds') ?? []).includes(uid)) {
+    throw new HttpsError('permission-denied', 'Not a member of this household.');
+  }
+  return h;
+}
+
+/** Saves (or with key = null removes) a provider key shared by the household. */
+export const aiSetKey = onCall({ region: REGION }, async (req) => {
+  const { householdId, provider, key, model } = req.data ?? {};
+  await requireMember(req.auth?.uid, householdId);
+  if (!providers.includes(provider)) throw new HttpsError('invalid-argument', 'Unknown provider');
+  const secretRef = db.doc(`households/${householdId}/secrets/ai`);
+  const hRef = db.doc(`households/${householdId}`);
+  if (key == null || key === '') {
+    await secretRef.set({ [provider]: FieldValue.delete() }, { merge: true });
+    await hRef.update({ [`ai.${provider}`]: FieldValue.delete() });
+    return { ok: true };
+  }
+  if (typeof key !== 'string' || key.length > 500) throw new HttpsError('invalid-argument', 'Bad key');
+  const m = typeof model === 'string' && model ? model : defaultModels[provider as Provider];
+  await secretRef.set({ [provider]: { key, model: m, by: req.auth!.uid } }, { merge: true });
+  // Members only see that a shared key exists, never the key itself.
+  await hRef.update({ [`ai.${provider}`]: { model: m } });
+  return { ok: true };
+});
+
+/** Runs an AI request with the household's shared key. */
+export const aiProxy = onCall({ region: REGION, timeoutSeconds: 120, memory: '512MiB' }, async (req) => {
+  const { householdId, provider, prompt, images, schema, maxTokens } = req.data ?? {};
+  await requireMember(req.auth?.uid, householdId);
+  if (!providers.includes(provider)) throw new HttpsError('invalid-argument', 'Unknown provider');
+  if (typeof prompt !== 'string' || prompt.length > 20000) throw new HttpsError('invalid-argument', 'Bad prompt');
+  const secret = (await db.doc(`households/${householdId}/secrets/ai`).get()).get(provider);
+  if (!secret?.key) throw new HttpsError('failed-precondition', 'No shared key for this provider.');
+  try {
+    const text = await callProvider(provider, secret.key, secret.model, {
+      prompt,
+      images: Array.isArray(images) ? images.slice(0, 4) : [],
+      schema: schema ?? null,
+      maxTokens: typeof maxTokens === 'number' ? Math.min(maxTokens, 16000) : undefined,
+    });
+    return { text };
+  } catch (e) {
+    logger.warn('ai call failed', { provider, error: String(e) });
+    throw new HttpsError('unavailable', e instanceof AiError ? e.message : 'AI request failed');
+  }
+});
