@@ -9,6 +9,8 @@ import '../../domain/models.dart';
 import '../../domain/notification_rules.dart';
 import '../../domain/shelf_life.dart';
 import '../../domain/shopping.dart';
+import '../../services/health_service.dart';
+import '../../app.dart' show rootNavigatorKey;
 import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -42,14 +44,22 @@ Future<void> restock(GlebaRepository repo, String hid, GlebaUser by, {List<Stock
 /// Item actions with an "Undo" snackbar. Everything needed is captured up
 /// front, so the actions keep working after the bottom sheet is closed.
 class ItemActions {
-  ItemActions._(this._repo, this._hid, this._user, this._anim, this._overlay, this._messenger, this._l);
+  ItemActions._(this._repo, this._hid, this._user, this._anim, this._overlay, this._messenger, this._l, this._health);
 
   static ItemActions? of(BuildContext host, WidgetRef ref) {
     final hid = ref.read(activeHouseholdProvider)?.id;
     final user = ref.read(userProvider).value;
     if (hid == null || user == null) return null;
-    return ItemActions._(ref.read(repositoryProvider), hid, user, ref.read(settingsProvider).animations,
-        Overlay.maybeOf(host, rootOverlay: true), ScaffoldMessenger.maybeOf(host), AppLocalizations.of(host));
+    return ItemActions._(
+      ref.read(repositoryProvider),
+      hid,
+      user,
+      ref.read(settingsProvider).animations,
+      Overlay.maybeOf(host, rootOverlay: true),
+      ScaffoldMessenger.maybeOf(host),
+      AppLocalizations.of(host),
+      ref.read(settingsProvider).healthWrite && HealthService.supported,
+    );
   }
 
   final GlebaRepository _repo;
@@ -59,16 +69,19 @@ class ItemActions {
   final OverlayState? _overlay;
   final ScaffoldMessengerState? _messenger;
   final AppLocalizations _l;
+  final bool _health;
 
   void _snack(String text, Future<void> Function() undo) {
     _messenger
       ?..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(text),
-        duration: const Duration(seconds: 6),
-        persist: false,
-        action: SnackBarAction(label: _l.undo, onPressed: () => undo()),
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(text),
+          duration: const Duration(seconds: 6),
+          persist: false,
+          action: SnackBarAction(label: _l.undo, onPressed: () => undo()),
+        ),
+      );
   }
 
   Future<void> finish(PantryItem item, ItemStatus how, {double? quantity}) async {
@@ -77,9 +90,32 @@ class ItemActions {
         : showBurstOn(_overlay, '🗑️', particles: const ['💧'], enabled: _anim);
     final eventId = await _repo.finishItem(_hid, item, how, _user, quantity: quantity);
     await restock(_repo, _hid, _user);
-    final label = quantity != null && quantity < item.quantity ? '${item.name} (${_fmt(quantity)} ${item.unit})' : item.name;
-    _snack(how == ItemStatus.consumed ? _l.snackConsumed(label) : _l.snackDiscarded(label),
-        () => _repo.undoFinish(_hid, item, eventId));
+    final label = quantity != null && quantity < item.quantity
+        ? '${item.name} (${_fmt(quantity)} ${item.unit})'
+        : item.name;
+    _snack(
+      how == ItemStatus.consumed ? _l.snackConsumed(label) : _l.snackDiscarded(label),
+      () => _repo.undoFinish(_hid, item, eventId),
+    );
+    if (how == ItemStatus.consumed && _health && item.nutrition != null) {
+      await _logToHealth(item, gramsEaten(item, quantity ?? item.quantity));
+    }
+  }
+
+  /// "How much did you eat?" with a live preview, then Health Connect.
+  Future<void> _logToHealth(PantryItem item, double grams) async {
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    final eaten = await showModalBottomSheet<double>(
+      context: ctx,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _HealthSheet(item: item, grams: grams),
+    );
+    if (eaten == null || eaten <= 0) return;
+    if (await HealthService.instance.writeEaten(item, eaten)) {
+      _messenger?.showSnackBar(SnackBar(content: Text(_l.healthWritten)));
+    }
   }
 
   Future<void> addToShopping(PantryItem item) async {
@@ -99,9 +135,13 @@ class ItemActions {
   static String _fmt(double q) => q == q.roundToDouble() ? '${q.toInt()}' : '$q';
 }
 
-Future<void> finishWithFanfare(BuildContext context, WidgetRef ref, PantryItem item, ItemStatus how,
-        {double? quantity}) async =>
-    ItemActions.of(context, ref)?.finish(item, how, quantity: quantity);
+Future<void> finishWithFanfare(
+  BuildContext context,
+  WidgetRef ref,
+  PantryItem item,
+  ItemStatus how, {
+  double? quantity,
+}) async => ItemActions.of(context, ref)?.finish(item, how, quantity: quantity);
 
 Future<void> showItemSheet(BuildContext context, WidgetRef ref, PantryItem item) {
   final actions = ItemActions.of(context, ref);
@@ -177,8 +217,10 @@ class _ItemSheet extends ConsumerWidget {
               children: [
                 Chip(
                   avatar: Icon(Icons.event, color: color, size: 18),
-                  label: Text('${dateTypeLabel(l, item.dateType)}: ${formatDate(context, item.expiryDate)} '
-                      '(${relativeExpiry(l, item.expiryDate, now)})'),
+                  label: Text(
+                    '${dateTypeLabel(l, item.dateType)}: ${formatDate(context, item.expiryDate)} '
+                    '(${relativeExpiry(l, item.expiryDate, now)})',
+                  ),
                   side: BorderSide(color: color),
                 ),
                 Chip(label: Text('${locationLabel(l, location)} · ${_qty(item)}')),
@@ -218,18 +260,24 @@ class _ItemSheet extends ConsumerWidget {
               children: [
                 if (!item.isOpened)
                   TextButton.icon(
-                    onPressed: () => update(item.copyWith(openedAt: now, expiryDate: expiryAfterOpening(item, now)), HistoryType.opened),
+                    onPressed: () => update(
+                      item.copyWith(openedAt: now, expiryDate: expiryAfterOpening(item, now)),
+                      HistoryType.opened,
+                    ),
                     icon: const Text('🔓'),
                     label: Text(l.markOpened),
                   ),
                 if (!item.isFrozen && location != LocationType.freezer)
                   TextButton.icon(
-                    onPressed: () => update(item.copyWith(
-                      frozenAt: now,
-                      expiryDate: expiryAfterFreezing(item, now),
-                      locationType: LocationType.freezer,
-                      locationId: LocationType.freezer.name,
-                    ), HistoryType.frozen),
+                    onPressed: () => update(
+                      item.copyWith(
+                        frozenAt: now,
+                        expiryDate: expiryAfterFreezing(item, now),
+                        locationType: LocationType.freezer,
+                        locationId: LocationType.freezer.name,
+                      ),
+                      HistoryType.frozen,
+                    ),
                     icon: const Text('❄️'),
                     label: Text(l.freeze),
                   ),
@@ -263,7 +311,13 @@ class _ItemSheet extends ConsumerWidget {
                       host,
                       ref,
                       existing.firstOrNull ??
-                          StockRule(productKey: key, name: item.name, minQuantity: 1, unit: item.unit, categoryId: item.categoryId),
+                          StockRule(
+                            productKey: key,
+                            name: item.name,
+                            minQuantity: 1,
+                            unit: item.unit,
+                            categoryId: item.categoryId,
+                          ),
                     );
                   },
                   icon: const Text('🔁'),
@@ -306,18 +360,20 @@ class _ItemSheet extends ConsumerWidget {
           ])
             SimpleDialogOption(
               onPressed: () => Navigator.pop(ctx, value),
-              child: Row(children: [
-                Icon(
-                  (value == -1 && current == null) ||
-                          (value == -2 && current?.enabled == false) ||
-                          (current?.enabled == true && current?.daysBefore == value)
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(label),
-              ]),
+              child: Row(
+                children: [
+                  Icon(
+                    (value == -1 && current == null) ||
+                            (value == -2 && current?.enabled == false) ||
+                            (current?.enabled == true && current?.daysBefore == value)
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(label),
+                ],
+              ),
             ),
         ],
       ),
@@ -337,4 +393,82 @@ class _ItemSheet extends ConsumerWidget {
 
   static String _qty(PantryItem i) =>
       '${i.quantity == i.quantity.roundToDouble() ? i.quantity.toInt() : i.quantity} ${i.unit}';
+}
+
+class _HealthSheet extends StatefulWidget {
+  const _HealthSheet({required this.item, required this.grams});
+
+  final PantryItem item;
+  final double grams;
+
+  @override
+  State<_HealthSheet> createState() => _HealthSheetState();
+}
+
+class _HealthSheetState extends State<_HealthSheet> {
+  late final _ctl = TextEditingController(text: widget.grams.round().toString());
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l;
+    final g = double.tryParse(_ctl.text.replaceAll(',', '.')) ?? 0;
+    final v = widget.item.nutrition!.forGrams(g);
+    String r(double? x) => x == null ? '–' : x.round().toString();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(context).bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('💚 ${l.healthHowMuch}', style: Theme.of(context).textTheme.titleLarge),
+          Text(widget.item.name, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: () => setState(() => _ctl.text = '${(g - 25).clamp(0, 100000).round()}'),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _ctl,
+                  textAlign: TextAlign.center,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(labelText: l.healthGrams, suffixText: 'g'),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: () => setState(() => _ctl.text = '${(g + 25).round()}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(l.healthPreview(r(v.kcal), r(v.protein), r(v.carbs), r(v.fat)), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(l.healthSkip)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: g > 0 ? () => Navigator.pop(context, g) : null,
+                  child: Text(l.healthWriteBtn),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -47,5 +47,5 @@
 - [x] Chybějící suroviny jedním klepnutím na nákup, „Uvařeno“ odepíše použité suroviny
 
 ## Fáze 3: Volitelné
-- [ ] Health Connect / Samsung Health
+- [x] Health Connect / Samsung Health: po „Snězeno“ zápis kalorií a makroživin (z Open Food Facts), gramy upravitelné, druh jídla podle času
 - [ ] NFC štítek pro rychlou inventuru

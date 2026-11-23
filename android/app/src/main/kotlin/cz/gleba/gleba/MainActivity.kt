@@ -1,5 +1,6 @@
 package cz.gleba.gleba
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity: required by the Health Connect permission dialog.
+class MainActivity : FlutterFragmentActivity()

@@ -282,5 +282,16 @@
   "planToShopping": "Missing to shopping ({count})",
   "planAddedToShopping": "Added to shopping: {count}",
   "planSaveSuggestion": "Save to the meal plan",
-  "planToday": "today"
+  "planToday": "today",
+  "healthWrite": "Log eaten food to Samsung Health",
+  "healthWriteText": "Via Health Connect: calories, protein, carbs and fat for products with known nutrition values.",
+  "healthUnavailable": "Health Connect isn't available on this phone.",
+  "healthInstall": "Health Connect needs to be installed or updated.",
+  "healthDenied": "It won't work without Health Connect permission.",
+  "healthHowMuch": "How much did you eat?",
+  "healthGrams": "Grams",
+  "healthWriteBtn": "Log",
+  "healthSkip": "Skip",
+  "healthWritten": "Logged to Health Connect 💚",
+  "healthPreview": "{kcal} kcal · P {protein} g · C {carbs} g · F {fat} g"
 }

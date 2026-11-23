@@ -57,9 +57,13 @@ class PantryItem {
     this.addedAt,
     this.householdId,
     this.checkedAt,
+    this.nutrition,
   });
 
   final String id;
+
+  /// Per-100 g nutrition, when known (Open Food Facts).
+  final Nutrition? nutrition;
 
   /// Which household the item belongs to. Not stored – filled in when items
   /// from several households are combined (notifications).
@@ -107,82 +111,164 @@ class PantryItem {
     DateTime? frozenAt,
     ItemStatus? status,
     DateTime? checkedAt,
-  }) =>
-      PantryItem(
-        id: id,
-        name: name ?? this.name,
-        categoryId: categoryId ?? this.categoryId,
-        expiryDate: expiryDate ?? this.expiryDate,
-        ean: ean,
-        brand: brand,
-        imageUrl: imageUrl,
-        locationId: locationId ?? this.locationId,
-        locationType: locationType ?? this.locationType,
-        quantity: quantity ?? this.quantity,
-        unit: unit,
-        dateType: dateType ?? this.dateType,
-        originalExpiryDate: originalExpiryDate ?? this.expiryDate,
-        openedAt: openedAt ?? this.openedAt,
-        frozenAt: frozenAt ?? this.frozenAt,
-        price: price,
-        source: source,
-        status: status ?? this.status,
-        addedBy: addedBy,
-        addedAt: addedAt,
-        householdId: householdId,
-        checkedAt: checkedAt ?? this.checkedAt,
-      );
+  }) => PantryItem(
+    id: id,
+    name: name ?? this.name,
+    categoryId: categoryId ?? this.categoryId,
+    expiryDate: expiryDate ?? this.expiryDate,
+    ean: ean,
+    brand: brand,
+    imageUrl: imageUrl,
+    locationId: locationId ?? this.locationId,
+    locationType: locationType ?? this.locationType,
+    quantity: quantity ?? this.quantity,
+    unit: unit,
+    dateType: dateType ?? this.dateType,
+    originalExpiryDate: originalExpiryDate ?? this.expiryDate,
+    openedAt: openedAt ?? this.openedAt,
+    frozenAt: frozenAt ?? this.frozenAt,
+    price: price,
+    source: source,
+    status: status ?? this.status,
+    addedBy: addedBy,
+    addedAt: addedAt,
+    householdId: householdId,
+    checkedAt: checkedAt ?? this.checkedAt,
+    nutrition: nutrition,
+  );
 
   Map<String, Object?> toMap() => {
-        'name': name,
-        'categoryId': categoryId,
-        'expiryDate': expiryDate,
-        'ean': ean,
-        'brand': brand,
-        'imageUrl': imageUrl,
-        'locationId': locationId,
-        'locationType': locationType?.name,
-        'quantity': quantity,
-        'unit': unit,
-        'dateType': dateType.name,
-        'originalExpiryDate': originalExpiryDate,
-        'openedAt': openedAt,
-        'frozenAt': frozenAt,
-        'price': price,
-        'source': source.name,
-        'status': status.name,
-        'addedBy': addedBy,
-        'addedAt': addedAt,
-        'checkedAt': checkedAt,
-      };
+    'name': name,
+    'categoryId': categoryId,
+    'expiryDate': expiryDate,
+    'ean': ean,
+    'brand': brand,
+    'imageUrl': imageUrl,
+    'locationId': locationId,
+    'locationType': locationType?.name,
+    'quantity': quantity,
+    'unit': unit,
+    'dateType': dateType.name,
+    'originalExpiryDate': originalExpiryDate,
+    'openedAt': openedAt,
+    'frozenAt': frozenAt,
+    'price': price,
+    'source': source.name,
+    'status': status.name,
+    'addedBy': addedBy,
+    'addedAt': addedAt,
+    'checkedAt': checkedAt,
+    'nutrition': nutrition?.toMap(),
+  };
 
   factory PantryItem.fromMap(String id, Map<String, Object?> m, {String? householdId}) => PantryItem(
-        id: id,
-        householdId: householdId,
-        name: (m['name'] as String?) ?? '',
-        categoryId: (m['categoryId'] as String?) ?? 'other',
-        expiryDate: _date(m['expiryDate']) ?? DateTime.now(),
-        ean: m['ean'] as String?,
-        brand: m['brand'] as String?,
-        imageUrl: m['imageUrl'] as String?,
-        locationId: m['locationId'] as String?,
-        locationType: m['locationType'] == null
-            ? null
-            : _enumByName(LocationType.values, m['locationType'], LocationType.other),
-        quantity: (m['quantity'] as num?)?.toDouble() ?? 1,
-        unit: (m['unit'] as String?) ?? 'ks',
-        dateType: _enumByName(DateType.values, m['dateType'], DateType.useBy),
-        originalExpiryDate: _date(m['originalExpiryDate']),
-        openedAt: _date(m['openedAt']),
-        frozenAt: _date(m['frozenAt']),
-        price: (m['price'] as num?)?.toDouble(),
-        source: _enumByName(ItemSource.values, m['source'], ItemSource.manual),
-        status: _enumByName(ItemStatus.values, m['status'], ItemStatus.active),
-        addedBy: m['addedBy'] as String?,
-        addedAt: _date(m['addedAt']),
-        checkedAt: _date(m['checkedAt']),
-      );
+    id: id,
+    householdId: householdId,
+    name: (m['name'] as String?) ?? '',
+    categoryId: (m['categoryId'] as String?) ?? 'other',
+    expiryDate: _date(m['expiryDate']) ?? DateTime.now(),
+    ean: m['ean'] as String?,
+    brand: m['brand'] as String?,
+    imageUrl: m['imageUrl'] as String?,
+    locationId: m['locationId'] as String?,
+    locationType: m['locationType'] == null
+        ? null
+        : _enumByName(LocationType.values, m['locationType'], LocationType.other),
+    quantity: (m['quantity'] as num?)?.toDouble() ?? 1,
+    unit: (m['unit'] as String?) ?? 'ks',
+    dateType: _enumByName(DateType.values, m['dateType'], DateType.useBy),
+    originalExpiryDate: _date(m['originalExpiryDate']),
+    openedAt: _date(m['openedAt']),
+    frozenAt: _date(m['frozenAt']),
+    price: (m['price'] as num?)?.toDouble(),
+    source: _enumByName(ItemSource.values, m['source'], ItemSource.manual),
+    status: _enumByName(ItemStatus.values, m['status'], ItemStatus.active),
+    addedBy: m['addedBy'] as String?,
+    addedAt: _date(m['addedAt']),
+    checkedAt: _date(m['checkedAt']),
+    nutrition: Nutrition.fromMap(m['nutrition']),
+  );
 }
+
+/// Nutrition per 100 g (from Open Food Facts) + typical portion sizes.
+class Nutrition {
+  const Nutrition({
+    this.kcal,
+    this.protein,
+    this.carbs,
+    this.fat,
+    this.sugar,
+    this.fiber,
+    this.salt,
+    this.servingGrams,
+    this.packageGrams,
+  });
+
+  final double? kcal;
+  final double? protein;
+  final double? carbs;
+  final double? fat;
+  final double? sugar;
+  final double? fiber;
+  final double? salt;
+
+  /// One serving / the whole package, in grams (ml ≈ g).
+  final double? servingGrams;
+  final double? packageGrams;
+
+  bool get hasEnergy => kcal != null;
+
+  /// Values for [grams] of the food.
+  Nutrition forGrams(double grams) {
+    double? f(double? per100) => per100 == null ? null : per100 * grams / 100;
+    return Nutrition(
+      kcal: f(kcal),
+      protein: f(protein),
+      carbs: f(carbs),
+      fat: f(fat),
+      sugar: f(sugar),
+      fiber: f(fiber),
+      salt: f(salt),
+    );
+  }
+
+  Map<String, Object?> toMap() => {
+    'kcal': kcal,
+    'protein': protein,
+    'carbs': carbs,
+    'fat': fat,
+    'sugar': sugar,
+    'fiber': fiber,
+    'salt': salt,
+    'servingGrams': servingGrams,
+    'packageGrams': packageGrams,
+  };
+
+  static Nutrition? fromMap(Object? m) {
+    if (m is! Map) return null;
+    double? d(String k) => (m[k] as num?)?.toDouble();
+    final n = Nutrition(
+      kcal: d('kcal'),
+      protein: d('protein'),
+      carbs: d('carbs'),
+      fat: d('fat'),
+      sugar: d('sugar'),
+      fiber: d('fiber'),
+      salt: d('salt'),
+      servingGrams: d('servingGrams'),
+      packageGrams: d('packageGrams'),
+    );
+    return n.hasEnergy ? n : null;
+  }
+}
+
+/// Grams eaten when [quantity] of [item] is consumed – a starting value the
+/// user can correct before it goes to Health Connect.
+double gramsEaten(PantryItem item, double quantity) => switch (item.unit) {
+  'g' || 'ml' => quantity,
+  'kg' || 'l' => quantity * 1000,
+  _ => quantity * (item.nutrition?.servingGrams ?? item.nutrition?.packageGrams ?? 100),
+};
 
 class Household {
   const Household({required this.id, required this.name, required this.memberIds, this.aiShared = const {}});
@@ -196,14 +282,14 @@ class Household {
   final Map<String, String> aiShared;
 
   factory Household.fromMap(String id, Map<String, Object?> m) => Household(
-        id: id,
-        name: (m['name'] as String?) ?? '',
-        memberIds: List<String>.from((m['memberIds'] as List?) ?? const []),
-        aiShared: {
-          for (final e in ((m['ai'] as Map?) ?? const {}).entries)
-            if (e.value is Map) '${e.key}': '${(e.value as Map)['model'] ?? ''}',
-        },
-      );
+    id: id,
+    name: (m['name'] as String?) ?? '',
+    memberIds: List<String>.from((m['memberIds'] as List?) ?? const []),
+    aiShared: {
+      for (final e in ((m['ai'] as Map?) ?? const {}).entries)
+        if (e.value is Map) '${e.key}': '${(e.value as Map)['model'] ?? ''}',
+    },
+  );
 }
 
 /// Product information as returned by a lookup (household memory, shared DB
@@ -222,7 +308,10 @@ class ProductInfo {
     this.locationType,
     this.shelfLifeDays,
     this.source = 'off',
+    this.nutrition,
   });
+
+  final Nutrition? nutrition;
 
   final String ean;
   final String name;

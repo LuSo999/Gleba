@@ -250,7 +250,7 @@ class DemoRepository implements GlebaRepository {
   Future<void> rememberProduct(String householdId, PantryItem item) async {
     _products['$householdId/${item.ean}'] = ProductInfo(
       ean: item.ean!, name: item.name, brand: item.brand, categoryId: item.categoryId,
-      locationType: item.locationType, source: 'household');
+      locationType: item.locationType, source: 'household', nutrition: item.nutrition);
   }
 
   @override

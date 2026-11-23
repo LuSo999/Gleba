@@ -21,7 +21,8 @@ class ProductLookup {
           ? own
           : ProductInfo(
               ean: ean, name: own.name, brand: own.brand, imageUrl: own.imageUrl, categoryId: own.categoryId,
-              locationType: own.locationType, shelfLifeDays: shared!.shelfLifeDays, source: own.source);
+              locationType: own.locationType, shelfLifeDays: shared!.shelfLifeDays, source: own.source,
+              nutrition: own.nutrition);
     }
     final shared = await _shared(ean);
     if (shared != null) return shared;

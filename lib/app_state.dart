@@ -113,7 +113,16 @@ final notificationPrefsProvider = StreamProvider<NotificationPrefs>((ref) {
 });
 
 class AppSettings {
-  const AppSettings({this.locale, this.animations = true, this.partialConsumption = true, this.shareToOff});
+  const AppSettings({
+    this.locale,
+    this.animations = true,
+    this.partialConsumption = true,
+    this.shareToOff,
+    this.healthWrite = false,
+  });
+
+  /// Log eaten food to Health Connect (Samsung Health).
+  final bool healthWrite;
 
   final Locale? locale;
   final bool animations;
@@ -136,16 +145,29 @@ class SettingsNotifier extends Notifier<AppSettings> {
       animations: _prefs?.getBool('animations') ?? true,
       partialConsumption: _prefs?.getBool('partialConsumption') ?? true,
       shareToOff: _prefs?.getBool('shareToOff'),
+      healthWrite: _prefs?.getBool('healthWrite') ?? false,
     );
   }
 
-  AppSettings _copy({Locale? locale, bool clearLocale = false, bool? animations, bool? partial, bool? share}) =>
-      AppSettings(
-        locale: clearLocale ? null : (locale ?? state.locale),
-        animations: animations ?? state.animations,
-        partialConsumption: partial ?? state.partialConsumption,
-        shareToOff: share ?? state.shareToOff,
-      );
+  AppSettings _copy({
+    Locale? locale,
+    bool clearLocale = false,
+    bool? animations,
+    bool? partial,
+    bool? share,
+    bool? health,
+  }) => AppSettings(
+    locale: clearLocale ? null : (locale ?? state.locale),
+    animations: animations ?? state.animations,
+    partialConsumption: partial ?? state.partialConsumption,
+    shareToOff: share ?? state.shareToOff,
+    healthWrite: health ?? state.healthWrite,
+  );
+
+  void setHealthWrite(bool v) {
+    _prefs?.setBool('healthWrite', v);
+    state = _copy(health: v);
+  }
 
   void setShareToOff(bool v) {
     _prefs?.setBool('shareToOff', v);

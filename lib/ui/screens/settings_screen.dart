@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
+import '../../services/health_service.dart';
 import '../../services/push_service.dart';
 import '../labels.dart';
 
@@ -58,6 +59,36 @@ class SettingsScreen extends ConsumerWidget {
             value: s.shareToOff ?? false,
             onChanged: n.setShareToOff,
           ),
+          if (HealthService.supported)
+            SwitchListTile(
+              secondary: const Text('💚', style: TextStyle(fontSize: 22)),
+              title: Text(l.healthWrite),
+              subtitle: Text(l.healthWriteText),
+              isThreeLine: true,
+              value: s.healthWrite,
+              onChanged: (v) async {
+                if (!v) return n.setHealthWrite(false);
+                final messenger = ScaffoldMessenger.of(context);
+                final health = HealthService.instance;
+                switch (await health.availability()) {
+                  case HealthAvailability.unavailable:
+                    messenger.showSnackBar(SnackBar(content: Text(l.healthUnavailable)));
+                  case HealthAvailability.needsInstall:
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(l.healthInstall),
+                        action: SnackBarAction(label: 'Play', onPressed: health.install),
+                      ),
+                    );
+                  case HealthAvailability.available:
+                    if (await health.enable()) {
+                      n.setHealthWrite(true);
+                    } else {
+                      messenger.showSnackBar(SnackBar(content: Text(l.healthDenied)));
+                    }
+                }
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: Text(l.notifications),

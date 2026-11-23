@@ -300,6 +300,7 @@ class FirestoreRepository implements GlebaRepository {
       locationType: LocationType.values.where((l) => l.name == d['locationType']).firstOrNull,
       shelfLifeDays: (d['shelfLifeDays'] as num?)?.toInt(),
       source: 'household',
+      nutrition: Nutrition.fromMap(d['nutrition']),
     );
   }
 

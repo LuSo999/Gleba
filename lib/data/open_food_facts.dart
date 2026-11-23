@@ -16,13 +16,14 @@ class OpenFoodFactsClient {
 
   static const _fields =
       'product_name,product_name_cs,product_name_en,generic_name_cs,brands,image_front_small_url,'
-      'categories_tags,allergens_tags,nutriscore_grade,quantity';
+      'categories_tags,allergens_tags,nutriscore_grade,quantity,nutriments,serving_quantity,product_quantity';
 
   Future<ProductInfo?> lookup(String ean) async {
     final uri = Uri.https('world.openfoodfacts.org', '/api/v2/product/$ean.json', {'fields': _fields});
     final http.Response res;
     try {
-      res = await _client.get(uri, headers: {'User-Agent': 'Gleba/0.1 (open-source pantry app)'})
+      res = await _client
+          .get(uri, headers: {'User-Agent': 'Gleba/0.1 (open-source pantry app)'})
           .timeout(const Duration(seconds: 8));
     } catch (_) {
       return null; // offline or slow – caller falls back to manual entry
@@ -40,8 +41,8 @@ ProductInfo? parseOffResponse(String ean, Map<String, dynamic> json, String lang
     return v is String && v.trim().isNotEmpty ? v.trim() : null;
   }
 
-  final name = str('product_name_$languageCode') ?? str('product_name') ?? str('product_name_en') ??
-      str('generic_name_cs');
+  final name =
+      str('product_name_$languageCode') ?? str('product_name') ?? str('product_name_en') ?? str('generic_name_cs');
   if (name == null) return null;
   final tags = List<String>.from((p['categories_tags'] as List?) ?? const []);
   final category = guessCategory(tags: tags, name: name);
@@ -62,5 +63,30 @@ ProductInfo? parseOffResponse(String ean, Map<String, dynamic> json, String lang
     categoryId: category.id,
     locationType: category.defaultLocation,
     source: 'off',
+    nutrition: _nutrition(p),
+  );
+}
+
+Nutrition? _nutrition(Map<String, dynamic> p) {
+  final n = p['nutriments'];
+  if (n is! Map) return null;
+  double? v(String k) {
+    final x = n[k];
+    return x is num ? x.toDouble() : (x is String ? double.tryParse(x) : null);
+  }
+
+  double? g(Object? x) => x is num ? x.toDouble() : (x is String ? double.tryParse(x) : null);
+  final kcal = v('energy-kcal_100g') ?? (v('energy_100g') == null ? null : v('energy_100g')! / 4.184);
+  if (kcal == null) return null;
+  return Nutrition(
+    kcal: kcal,
+    protein: v('proteins_100g'),
+    carbs: v('carbohydrates_100g'),
+    fat: v('fat_100g'),
+    sugar: v('sugars_100g'),
+    fiber: v('fiber_100g'),
+    salt: v('salt_100g'),
+    servingGrams: g(p['serving_quantity']),
+    packageGrams: g(p['product_quantity']),
   );
 }

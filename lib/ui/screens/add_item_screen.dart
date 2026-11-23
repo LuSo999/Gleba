@@ -275,6 +275,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       brand: _brand.text.trim().isEmpty ? null : _brand.text.trim(),
       ean: _ean,
       imageUrl: _product?.imageUrl,
+      nutrition: _product?.nutrition,
       categoryId: _categoryId,
       locationId: loc.name,
       locationType: loc,

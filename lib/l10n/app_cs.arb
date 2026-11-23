@@ -456,5 +456,24 @@
     }
   },
   "planSaveSuggestion": "Uložit do jídelníčku",
-  "planToday": "dnes"
+  "planToday": "dnes",
+  "healthWrite": "Zapisovat snězené do Samsung Health",
+  "healthWriteText": "Přes Health Connect: kalorie, bílkoviny, sacharidy a tuky u produktů se známými výživovými hodnotami.",
+  "healthUnavailable": "Health Connect na tomto telefonu není dostupný.",
+  "healthInstall": "Health Connect je potřeba nainstalovat nebo aktualizovat.",
+  "healthDenied": "Bez oprávnění Health Connect to nepůjde.",
+  "healthHowMuch": "Kolik jste snědli?",
+  "healthGrams": "Gramy",
+  "healthWriteBtn": "Zapsat",
+  "healthSkip": "Přeskočit",
+  "healthWritten": "Zapsáno do Health Connect 💚",
+  "healthPreview": "{kcal} kcal · B {protein} g · S {carbs} g · T {fat} g",
+  "@healthPreview": {
+    "placeholders": {
+      "kcal": {},
+      "protein": {},
+      "carbs": {},
+      "fat": {}
+    }
+  }
 }
