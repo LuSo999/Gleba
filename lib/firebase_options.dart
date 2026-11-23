@@ -1,8 +1,7 @@
 // Firebase configuration for project `gleba-e9a60`.
 // Can be regenerated with `flutterfire configure --project=gleba-e9a60`.
-//
-// TODO: fill in apiKey and appId for Android (Firebase console →
-// Project settings → Your apps). Until then the app runs in demo mode.
+// These values are public identifiers, not secrets – access is controlled by
+// firestore.rules.
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
@@ -34,8 +33,8 @@ class DefaultFirebaseOptions {
   );
 
   static const android = FirebaseOptions(
-    apiKey: '',
-    appId: '',
+    apiKey: 'AIzaSyDBSo4-HKYcLW5kP9m6fnLvEvV-EvV5g7w',
+    appId: '1:420766037857:android:626314fa88018e52997720',
     messagingSenderId: _senderId,
     projectId: _projectId,
     storageBucket: '$_projectId.firebasestorage.app',
