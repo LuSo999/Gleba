@@ -45,8 +45,7 @@ firestore.rules   bezpečnostní pravidla
    firebase login
    flutterfire configure --project=<ID-projektu> --platforms=android,web
    ```
-   Tím se přepíše `lib/firebase_options.dart`. Pak v něm nastavte `isConfigured = true`
-   (nebo nahraďte celý soubor vygenerovaným a přidejte konstantu zpět).
+   Tím se přepíše `lib/firebase_options.dart` a aplikace se sama přepne z ukázkového režimu na Firebase.
 5. Do `.firebaserc` doplňte ID projektu a nasaďte pravidla a web:
    ```bash
    firebase deploy --only firestore

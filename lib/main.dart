@@ -16,15 +16,14 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
 
   var firebaseReady = false;
-  if (DefaultFirebaseOptions.isConfigured) {
-    try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-      // Offline-first: reads come from the local cache, writes sync later.
-      FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
-      firebaseReady = true;
-    } catch (e) {
-      debugPrint('Firebase init failed, falling back to demo mode: $e');
-    }
+  try {
+    // Throws while lib/firebase_options.dart is still the placeholder.
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    // Offline-first: reads come from the local cache, writes sync later.
+    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+    firebaseReady = true;
+  } catch (e) {
+    debugPrint('Firebase not available, running in demo mode: $e');
   }
 
   runApp(ProviderScope(
