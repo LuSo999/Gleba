@@ -67,6 +67,8 @@ Firestore offline cache: skenování a úpravy fungují bez signálu a synchroni
   - **datum spotřeby z fotky**, když nestačí OCR v telefonu
   - **recepty** z vybraných surovin (prioritně z těch, co brzy projdou)
 - **Bez klíče:** tlačítko „Zkopírovat zadání pro AI“ připraví text se surovinami do schránky.
+- **Žádná vestavěná (námi placená) AI.** Vždy se používají klíče uživatelů. Poskytovatele lze zvolit zvlášť pro každou funkci (např. účtenky Gemini, recepty Claude).
+- Blaze slouží jen pro upozornění (FCM, Cloud Functions) a sdílený klíč domácnosti; v projektu je nastavený rozpočtový limit 250 Kč/měsíc.
 
 ## 8. Další funkce
 | Funkce | Fáze |
