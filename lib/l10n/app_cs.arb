@@ -1,0 +1,147 @@
+{
+  "@@locale": "cs",
+  "appTitle": "Gleba",
+  "fridge": "Lednice",
+  "freezer": "Mrazák",
+  "pantry": "Spíž",
+  "otherLocation": "Jinde",
+  "signInSubtitle": "Ať nic nezkazí. Přehled, co máte doma a kdy to projde.",
+  "signInGoogle": "Přihlásit přes Google",
+  "email": "E-mail",
+  "password": "Heslo",
+  "signIn": "Přihlásit se",
+  "register": "Vytvořit účet",
+  "haveAccount": "Už mám účet",
+  "noAccount": "Nemám účet",
+  "forgotPassword": "Zapomenuté heslo",
+  "passwordResetSent": "Poslali jsme vám e-mail pro obnovení hesla.",
+  "signOut": "Odhlásit se",
+  "demoBanner": "Ukázkový režim – Firebase zatím není nastavený, data se neukládají.",
+  "households": "Domácnosti",
+  "createHousehold": "Založit domácnost",
+  "householdName": "Název domácnosti",
+  "defaultHouseholdName": "Domov",
+  "joinHousehold": "Připojit se k domácnosti",
+  "inviteCode": "Kód pozvánky",
+  "invite": "Pozvat do domácnosti",
+  "inviteShareText": "Přidej se k mé domácnosti „{name}“ v aplikaci Gleba: {link} (kód {code})",
+  "@inviteShareText": {
+    "placeholders": {
+      "name": {},
+      "link": {},
+      "code": {}
+    }
+  },
+  "inviteValidUntil": "Platí do {date}",
+  "@inviteValidUntil": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "inviteInvalid": "Pozvánka neexistuje nebo vypršela.",
+  "join": "Připojit",
+  "joinedHousehold": "Jste v domácnosti „{name}“.",
+  "@joinedHousehold": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "copied": "Zkopírováno",
+  "copy": "Kopírovat",
+  "leaveHousehold": "Opustit domácnost",
+  "noHouseholdTitle": "Vítejte v Glebě!",
+  "noHouseholdText": "Založte svou domácnost, nebo se připojte k existující pomocí kódu.",
+  "viewFridge": "Lednice",
+  "viewList": "Spotřebuj nejdřív",
+  "addItem": "Přidat",
+  "scanBarcode": "Naskenovat kód",
+  "scanHint": "Namiřte na čárový kód nebo 2D kód na obalu",
+  "enterManually": "Zadat ručně",
+  "addLeftover": "Zbytky / domácí jídlo",
+  "productName": "Název",
+  "brand": "Značka",
+  "category": "Kategorie",
+  "location": "Umístění",
+  "quantity": "Množství",
+  "unit": "Jednotka",
+  "dateType": "Typ data",
+  "useBy": "Spotřebujte do",
+  "bestBefore": "Minimální trvanlivost",
+  "expiryDate": "Datum",
+  "dateFromCode": "Datum načteno z kódu",
+  "dateSuggested": "Navrženo podle kategorie – zkontrolujte",
+  "save": "Uložit",
+  "cancel": "Zrušit",
+  "eaten": "Snězeno",
+  "discarded": "Vyhozeno",
+  "opened": "Otevřeno",
+  "markOpened": "Otevřít",
+  "freeze": "Zamrazit",
+  "frozenSince": "Zamraženo {date}",
+  "@frozenSince": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "eatOne": "Snězen 1 ks",
+  "lookingUp": "Hledám produkt…",
+  "productNotFound": "Produkt jsme nenašli, doplňte ho prosím. Příště už ho Gleba bude znát.",
+  "productFound": "Nalezeno: {source}",
+  "@productFound": {
+    "placeholders": {
+      "source": {}
+    }
+  },
+  "inStoreCode": "Interní kód obchodu – zadejte název, zapamatujeme si ho.",
+  "daysLeft": "{count, plural, =0{dnes} =1{zítra} few{za {count} dny} other{za {count} dní}}",
+  "@daysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "expiredAgo": "{count, plural, =1{prošlo včera} few{prošlo před {count} dny} other{prošlo před {count} dny}}",
+  "@expiredAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyShelf": "Prázdno… jen cvrčci 🦗",
+  "nothingUrgent": "Nic nespěchá. Dobrá práce! 🎉",
+  "settings": "Nastavení",
+  "language": "Jazyk",
+  "animations": "Animace",
+  "systemDefault": "Podle systému",
+  "notifications": "Upozornění",
+  "comingSoon": "Připravujeme",
+  "tapToOpen": "Klepnutím otevřete",
+  "allergens": "Alergeny",
+  "nutriScore": "Nutri-Score",
+  "catFrozen": "Mražené",
+  "catLeftovers": "Zbytky a domácí jídlo",
+  "catReadyMeal": "Hotová jídla a pomazánky",
+  "catYogurt": "Jogurty a dezerty",
+  "catCheeseSoft": "Měkké sýry a smetana",
+  "catCheeseHard": "Tvrdé sýry",
+  "catButter": "Máslo a tuky",
+  "catMilkUht": "Trvanlivé a rostlinné mléko",
+  "catMilk": "Mléko",
+  "catEggs": "Vejce",
+  "catDeli": "Uzeniny",
+  "catPoultry": "Drůbež",
+  "catFish": "Ryby",
+  "catMeat": "Maso",
+  "catRootVeg": "Cibule, česnek, brambory",
+  "catVegetables": "Zelenina",
+  "catFruit": "Ovoce",
+  "catBread": "Pečivo",
+  "catDrinks": "Nápoje",
+  "catSauces": "Omáčky a dochucovadla",
+  "catCanned": "Konzervy",
+  "catDry": "Trvanlivé potraviny",
+  "catSweets": "Sladkosti a snacky",
+  "catOther": "Ostatní"
+}

@@ -11,7 +11,6 @@ users/{uid}
 households/{hid}
   name, memberIds[], createdBy, createdAt
   settings { locationsEnabled, currency, aiMode: 'device'|'shared'|'off', aiProvider }
-  /invites/{code}          createdBy, expiresAt, maxUses, uses
   /locations/{lid}         name, type: 'fridge'|'freezer'|'pantry'|'other', order, icon
   /categories/{cid}        (jen vlastní; standardní jsou v aplikaci) name, parentId, shelfLife{...}
   /items/{iid}             ean?, name, brand?, imageUrl?, categoryId, locationId?,
@@ -25,13 +24,17 @@ households/{hid}
   /stockRules/{rid}        productKey, minQuantity
   /secrets/ai              (jen přes Cloud Function, klient nemá přístup) šifrované API klíče
 
+invites/{code}             householdId, householdName, createdBy, expiresAt, maxUses, uses
+                           (top-level: připojující se ještě nezná ID domácnosti)
+
 products/{ean}             sdílená databáze: name, brand, categoryId, imageUrl,
                            shelfLifeStats {count, medianDays}, source, updatedAt
 ```
 
 ## Bezpečnostní pravidla (princip)
 - `households/{hid}/**` čte a zapisuje jen uid v `memberIds`.
-- **Připojení přes pozvánku bez serveru:** uživatel smí do `memberIds` přidat **pouze sebe**, a to jen pokud v téže dávce (batch) odkazuje na existující, neexpirovanou pozvánku a zvýší jí `uses`. Pravidla to ověří přes `getAfter()`.
+- **Připojení přes pozvánku bez serveru:** uživatel smí do `memberIds` přidat **pouze sebe**, a to jen pokud v téže dávce (batch) uvede kód platné pozvánky (`lastJoinCode`) a zvýší jí `uses`. Pravidla to ověří přes `get()`/`getAfter()`.
+- `invites/{code}`: číst jde jen konkrétní kód (ne výpis), vytvořit jen člen domácnosti.
 - `users/{uid}/**` jen vlastník.
 - `products/{ean}`: čtení pro přihlášené, zápis s validací polí (bez osobních údajů).
 - `secrets`: klient nemá přístup vůbec.

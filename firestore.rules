@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// Gleba security rules. See docs/datovy-model.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function householdPath(hid) {
+      return /databases/$(database)/documents/households/$(hid);
+    }
+
+    function isMember(hid) {
+      return signedIn() && uid() in get(householdPath(hid)).data.memberIds;
+    }
+
+    // For writes: also sees a household created earlier in the same batch.
+    function isMemberAfter(hid) {
+      return signedIn() && uid() in getAfter(householdPath(hid)).data.memberIds;
+    }
+
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // ---- Users: private to their owner ------------------------------------
+    match /users/{userId}/{document=**} {
+      allow read, write: if signedIn() && uid() == userId;
+    }
+
+    // ---- Households --------------------------------------------------------
+    match /households/{hid} {
+      allow read: if signedIn() && uid() in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.memberIds == [uid()]
+        && request.resource.data.createdBy == uid();
+
+      // Members may edit the household and may remove only themselves.
+      allow update: if signedIn() && uid() in resource.data.memberIds && (
+        request.resource.data.memberIds == resource.data.memberIds
+        || request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().difference([uid()].toSet())
+      );
+
+      // Joining via invite (no server needed): a non-member may add only
+      // themselves, referencing a valid invite whose `uses` is incremented in
+      // the same batch.
+      allow update: if signedIn()
+        && !(uid() in resource.data.memberIds)
+        && onlyChanges(['memberIds', 'lastJoinCode'])
+        && request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().union([uid()].toSet())
+        && validJoin(hid, request.resource.data.lastJoinCode);
+
+      function validJoin(hid, code) {
+        let before = get(/databases/$(database)/documents/invites/$(code)).data;
+        let after = getAfter(/databases/$(database)/documents/invites/$(code)).data;
+        return after.householdId == hid
+          && after.expiresAt > request.time
+          && after.uses == before.uses + 1
+          && after.uses <= after.maxUses;
+      }
+
+      // Household data – members only. AI secrets are never readable by clients.
+      match /{collection}/{docId} {
+        function allowed() {
+          return collection in
+            ['items', 'events', 'products', 'locations', 'categories', 'shoppingList', 'stockRules'];
+        }
+        allow read: if allowed() && isMember(hid);
+        allow write: if allowed() && isMemberAfter(hid);
+      }
+    }
+
+    // ---- Invites -------------------------------------------------------------
+    match /invites/{code} {
+      // Knowing the code is the secret: get yes, list no.
+      allow get: if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && isMember(request.resource.data.householdId)
+        && request.resource.data.createdBy == uid()
+        && request.resource.data.uses == 0
+        && request.resource.data.maxUses <= 50
+        && code.size() >= 8;
+
+      allow update: if signedIn()
+        && onlyChanges(['uses'])
+        && request.resource.data.uses == resource.data.uses + 1
+        && request.resource.data.uses <= resource.data.maxUses
+        && resource.data.expiresAt > request.time;
+
+      allow delete: if signedIn() && resource.data.createdBy == uid();
+    }
+
+    // ---- Shared product database (crowd-sourced, no personal data) ------------
+    match /products/{ean} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(
+          ['name', 'brand', 'categoryId', 'imageUrl', 'shelfLifeStats', 'source', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 200;
+    }
+  }
+}
