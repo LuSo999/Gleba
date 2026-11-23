@@ -9,6 +9,7 @@ import 'ui/screens/add_item_screen.dart';
 import 'ui/screens/ai_settings_screen.dart';
 import 'ui/screens/history_screen.dart';
 import 'ui/screens/inventory_screen.dart';
+import 'ui/screens/plan_screen.dart';
 import 'ui/screens/receipt_screen.dart';
 import 'ui/screens/recipes_screen.dart';
 import 'ui/screens/home_screen.dart';
@@ -61,6 +62,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/inventory',
         builder: (_, s) => Narrow(InventoryScreen(filter: s.uri.queryParameters['filter'])),
       ),
+      GoRoute(path: '/plan', builder: (_, _) => Narrow(const PlanScreen())),
       GoRoute(path: '/take', builder: (_, _) => Narrow(const TakeScreen())),
       GoRoute(path: '/stats', builder: (_, _) => Narrow(const StatsScreen())),
       GoRoute(path: '/shopping', builder: (_, _) => Narrow(const ShoppingScreen())),

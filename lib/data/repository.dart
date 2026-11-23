@@ -1,4 +1,5 @@
 import '../domain/history.dart';
+import '../domain/meal_plan.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import '../domain/shopping.dart';
@@ -106,6 +107,12 @@ abstract class GlebaRepository {
   Stream<List<StockRule>> watchStockRules(String householdId);
   Future<void> saveStockRule(String householdId, StockRule rule);
   Future<void> deleteStockRule(String householdId, String productKey);
+
+  // ---- Meal plan (shared by the household) ----
+  /// Meals with from <= date <= to (inclusive day keys "YYYY-MM-DD").
+  Stream<List<Meal>> watchMeals(String householdId, String from, String to);
+  Future<void> saveMeal(String householdId, Meal meal, GlebaUser by);
+  Future<void> deleteMeal(String householdId, String mealId);
 }
 
 /// Invite codes: 8 chars, no look-alike characters (0/O, 1/I/L).

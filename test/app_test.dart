@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gleba/app.dart';
 import 'package:gleba/app_state.dart';
 import 'package:gleba/data/demo_repository.dart';
+import 'package:gleba/data/repository.dart';
+import 'package:gleba/domain/meal_plan.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The freezer door shimmers forever, so pumpAndSettle would never finish.
@@ -305,5 +307,53 @@ void main() {
     final yogurt = (await repo.watchActiveItems('home').first).firstWhere((i) => i.name == 'Bílý jogurt');
     expect(yogurt.quantity, 2);
     expect(find.text('Snězeno: Bílý jogurt (1 ks)'), findsOneWidget);
+  });
+
+  testWidgets('meal plan: add a meal, missing to shopping, cooked uses up the fridge item', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final auth = DemoAuthService();
+    final repo = DemoRepository();
+    await auth.signInWithGoogle();
+    final container = ProviderContainer(overrides: [
+      isDemoProvider.overrideWithValue(true),
+      authServiceProvider.overrideWithValue(auth),
+      repositoryProvider.overrideWithValue(repo),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: const GlebaApp()));
+    await settle(tester);
+    container.read(routerProvider).push('/plan');
+    await settle(tester);
+
+    // Today's day header is first in this week's list only if today is Monday, so add via the code path:
+    final today = DateTime.now();
+    final todayKey = today.toIso8601String().substring(0, 10);
+    final chicken = (await repo.watchActiveItems('home').first).firstWhere((i) => i.name == 'Kuřecí prsa');
+    await repo.saveMeal(
+        'home',
+        Meal(id: '', date: todayKey, slot: MealSlot.dinner, title: 'Kuře na paprice',
+            uses: [MealUse(itemId: chicken.id, name: chicken.name)], missing: const ['Smetana', 'Paprika']),
+        const GlebaUser(uid: 'demo', displayName: 'Demo'));
+    await settle(tester);
+    expect(find.text('Kuře na paprice'), findsOneWidget);
+
+    await tester.tap(find.text('Chybějící na nákup (2)'));
+    await settle(tester);
+    expect((await repo.watchShoppingList('home').first).map((e) => e.name), containsAll(['Smetana', 'Paprika']));
+    expect(find.textContaining('Chybějící na nákup'), findsNothing);
+
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await settle(tester);
+    await tester.tap(find.text('✅ Uvařeno'));
+    await settle(tester);
+    await tester.tap(find.widgetWithText(FilledButton, 'Uvařeno'));
+    await settle(tester);
+    final items = await repo.watchActiveItems('home').first;
+    expect(items.any((i) => i.id == chicken.id), isFalse);
+    expect(find.text('✅'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../domain/history.dart';
+import '../domain/meal_plan.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import '../domain/shared_products.dart';
@@ -50,6 +51,7 @@ class DemoRepository implements GlebaRepository {
   final _items = <String, Map<String, PantryItem>>{};
   final _products = <String, ProductInfo>{};
   final _invites = <String, InviteInfo>{};
+  final _meals = <String, Map<String, Meal>>{};
   final _shared = <String, (ProductInfo, ShelfLifeStats)>{};
   final _rules = <String, NotificationRule>{};
   final _events = <String, List<HistoryEvent>>{};
@@ -357,5 +359,24 @@ class DemoRepository implements GlebaRepository {
     } else if (shelfLifeDays != null) {
       _shared[ean!] = (e.$1, e.$2.add(shelfLifeDays));
     }
+  }
+
+  @override
+  Stream<List<Meal>> watchMeals(String householdId, String from, String to) => _watch(() => [
+        for (final m in _meals[householdId]?.values ?? const <Meal>[])
+          if (m.date.compareTo(from) >= 0 && m.date.compareTo(to) <= 0) m,
+      ]);
+
+  @override
+  Future<void> saveMeal(String householdId, Meal meal, GlebaUser by) async {
+    final id = meal.id.isEmpty ? 'm${_seq++}' : meal.id;
+    (_meals[householdId] ??= {})[id] = Meal.fromMap(id, {...meal.toMap(), 'byName': meal.byName ?? by.shortName});
+    _changed();
+  }
+
+  @override
+  Future<void> deleteMeal(String householdId, String mealId) async {
+    _meals[householdId]?.remove(mealId);
+    _changed();
   }
 }

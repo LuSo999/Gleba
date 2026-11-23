@@ -41,6 +41,11 @@
 - [x] Ukládání bez signálu: zápisy se uloží v telefonu hned a odešlou se po připojení (aplikace i widget)
 - [x] Automatické testy bezpečnostních pravidel
 
+## Plánování jídel
+- [x] Týdenní jídelníček domácnosti (snídaně / oběd / večeře), suroviny z lednice + co chybí
+- [x] Návrh jídelníčku přes AI z věcí, které brzy projdou (nebo zkopírovat zadání)
+- [x] Chybějící suroviny jedním klepnutím na nákup, „Uvařeno“ odepíše použité suroviny
+
 ## Fáze 3: Volitelné
 - [ ] Health Connect / Samsung Health
 - [ ] NFC štítek pro rychlou inventuru

@@ -70,7 +70,7 @@ service cloud.firestore {
       match /{collection}/{docId} {
         function allowed() {
           return collection in
-            ['items', 'events', 'products', 'locations', 'categories', 'shoppingList', 'stockRules'];
+            ['items', 'events', 'products', 'locations', 'categories', 'shoppingList', 'stockRules', 'meals'];
         }
         allow read: if allowed() && isMember(hid);
         allow write: if allowed() && isMemberAfter(hid);

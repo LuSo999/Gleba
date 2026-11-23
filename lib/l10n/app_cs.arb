@@ -421,5 +421,40 @@
   "offAskText": "Tenhle produkt zatím nikdo nezná. Můžeme jeho název, značku a kategorii poslat do otevřené databáze Open Food Facts, aby ho příště našli i ostatní. Neposíláme nic o vás.",
   "offYes": "Ano, posílat",
   "offNo": "Ne",
-  "offSent": "Odesláno do Open Food Facts 🌍"
+  "offSent": "Odesláno do Open Food Facts 🌍",
+  "planTitle": "Jídelníček",
+  "slotBreakfast": "Snídaně",
+  "slotLunch": "Oběd",
+  "slotDinner": "Večeře",
+  "planAddMeal": "Přidat jídlo",
+  "planMealTitle": "Co bude?",
+  "planFromFridge": "Z lednice",
+  "planMissing": "Co chybí (oddělte čárkou)",
+  "planNotes": "Poznámka",
+  "planCooked": "Uvařeno",
+  "planEdit": "Upravit",
+  "planWhichUsed": "Co se spotřebovalo?",
+  "planSuggest": "Navrhnout",
+  "planSuggestTitle": "Navrhnout jídelníček",
+  "planDays": "Na kolik dní",
+  "planMeals": "Která jídla",
+  "planThinking": "Plánuji jídelníček…",
+  "planToShopping": "Chybějící na nákup ({count})",
+  "@planToShopping": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planAddedToShopping": "Na nákup přidáno: {count}",
+  "@planAddedToShopping": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planSaveSuggestion": "Uložit do jídelníčku",
+  "planToday": "dnes"
 }

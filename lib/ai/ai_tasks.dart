@@ -163,3 +163,71 @@ $list
 For each recipe give: name, time, which listed ingredients it uses, a short ingredient list with amounts, and numbered steps.
 Keep it concise. Answer in ${_lang(lang)}.''';
 }
+
+// ---- Meal plan -------------------------------------------------------------------
+
+/// The same text is used for "Copy prompt" and (with a schema) for the AI call.
+String mealPlanPrompt(List<PantryItem> items, int days, List<String> slots, String wishes, String lang, DateTime today) {
+  final list = items.map((i) {
+    final left = dateOnly(i.expiryDate).difference(dateOnly(today)).inDays;
+    return '- ${i.name} (${left < 0 ? 'expired ${-left} days ago' : 'expires in $left days'})';
+  }).join('\n');
+  return '''
+Plan home meals for the next $days days (day 0 = today) – meals: ${slots.join(', ')}.
+Use up the ingredients I have, the ones expiring soonest first; avoid waste. Keep it realistic for a household:
+reuse leftovers, simple everyday dishes. Basic pantry staples (salt, oil, flour, spices) are available.
+${wishes.trim().isEmpty ? '' : 'Wishes: ${wishes.trim()}\n'}
+In my fridge:
+$list
+
+For each meal: a short dish title, which of MY ingredients it uses (exact names from the list), and what I'd need to buy.
+Answer in ${_lang(lang)}.''';
+}
+
+AiRequest mealPlanRequest(String prompt) => AiRequest(
+      prompt: prompt,
+      schema: _obj({
+        'days': {
+          'type': 'array',
+          'items': _obj({
+            'day': {'type': 'integer'},
+            'meals': {
+              'type': 'array',
+              'items': _obj({
+                'slot': {'type': 'string', 'enum': ['breakfast', 'lunch', 'dinner']},
+                'title': {'type': 'string'},
+                'uses': {'type': 'array', 'items': {'type': 'string'}},
+                'missing': {'type': 'array', 'items': {'type': 'string'}},
+              }),
+            },
+          }),
+        },
+      }),
+    );
+
+class PlannedMeal {
+  const PlannedMeal({required this.day, required this.slot, required this.title, required this.uses, required this.missing});
+
+  final int day;
+  final String slot;
+  final String title;
+  final List<String> uses;
+  final List<String> missing;
+}
+
+List<PlannedMeal> parseMealPlan(String text, int days) {
+  final json = decodeJsonObject(text);
+  return [
+    for (final d in (json['days'] as List? ?? const []))
+      if (d is Map)
+        for (final m in (d['meals'] as List? ?? const []))
+          if (m is Map && (m['title'] as String?)?.trim().isNotEmpty == true)
+            PlannedMeal(
+              day: ((d['day'] as num?)?.toInt() ?? 0).clamp(0, days - 1),
+              slot: const ['breakfast', 'lunch', 'dinner'].contains(m['slot']) ? m['slot'] as String : 'dinner',
+              title: (m['title'] as String).trim(),
+              uses: [for (final u in (m['uses'] as List? ?? const [])) '$u'],
+              missing: [for (final u in (m['missing'] as List? ?? const [])) '$u'],
+            ),
+  ];
+}

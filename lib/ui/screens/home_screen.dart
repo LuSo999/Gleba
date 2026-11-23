@@ -74,6 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               'history' => context.push('/history'),
               'stats' => context.push('/stats'),
               'inventory' => context.push('/inventory'),
+              'plan' => context.push('/plan'),
               'invite' => showInviteDialog(context, ref, active),
               _ => context.push('/settings'),
             },

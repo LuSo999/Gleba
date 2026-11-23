@@ -52,6 +52,8 @@ test('nobody outside the household sees it', async () => {
 
 test('members manage items; AI secrets are never readable', async () => {
   await assertSucceeds(setDoc(doc(as('jana'), 'households/h1/items/i2'), { name: 'Sýr', status: 'active' }));
+  await assertSucceeds(setDoc(doc(as('jana'), 'households/h1/meals/m1'), { date: '2026-11-24', title: 'Guláš' }));
+  await assertFails(getDoc(doc(as('eve'), 'households/h1/meals/m1')));
   await assertFails(setDoc(doc(as('eve'), 'households/h1/items/i3'), { name: 'Hack' }));
   await assertFails(getDoc(doc(as('jana'), 'households/h1/secrets/ai')));
   await assertFails(setDoc(doc(as('jana'), 'households/h1/secrets/ai'), { gemini: { key: 'mine' } }));

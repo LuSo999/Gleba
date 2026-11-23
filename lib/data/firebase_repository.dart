@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../domain/history.dart';
+import '../domain/meal_plan.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import '../domain/shared_products.dart';
@@ -459,4 +460,22 @@ class FirestoreRepository implements GlebaRepository {
   @override
   Future<void> deleteStockRule(String householdId, String productKey) =>
       _local(_stock(householdId).doc(_ruleId(productKey)).delete());
+
+  CollectionReference<Map<String, dynamic>> _meals(String hid) => _households.doc(hid).collection('meals');
+
+  @override
+  Stream<List<Meal>> watchMeals(String householdId, String from, String to) => _meals(householdId)
+      .where('date', isGreaterThanOrEqualTo: from)
+      .where('date', isLessThanOrEqualTo: to)
+      .snapshots()
+      .map((s) => s.docs.map((d) => Meal.fromMap(d.id, d.data())).toList());
+
+  @override
+  Future<void> saveMeal(String householdId, Meal meal, GlebaUser by) {
+    final ref = meal.id.isEmpty ? _meals(householdId).doc() : _meals(householdId).doc(meal.id);
+    return _local(ref.set({...meal.toMap(), 'byName': meal.byName ?? by.shortName, 'updatedAt': FieldValue.serverTimestamp()}));
+  }
+
+  @override
+  Future<void> deleteMeal(String householdId, String mealId) => _local(_meals(householdId).doc(mealId).delete());
 }

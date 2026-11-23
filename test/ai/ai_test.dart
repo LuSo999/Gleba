@@ -96,4 +96,20 @@ void main() {
         call(http.Response('{"error":{"message":"invalid x-api-key"}}', 401)),
         throwsA(predicate((e) => e is AiException && e.message == 'invalid x-api-key')));
   });
+
+  test('meal plan prompt and parsing', () {
+    final now = DateTime(2026, 11, 23);
+    final prompt = mealPlanPrompt(
+      [PantryItem(id: 'a', name: 'Kuřecí prsa', categoryId: 'poultry', expiryDate: DateTime(2026, 11, 24))],
+      5, ['lunch', 'dinner'], '', 'cs', now);
+    expect(prompt, contains('next 5 days'));
+    expect(prompt, contains('- Kuřecí prsa (expires in 1 days)'));
+    final plan = parseMealPlan(
+        '{"days":[{"day":0,"meals":[{"slot":"dinner","title":"Kuře na paprice","uses":["Kuřecí prsa"],"missing":["Smetana"]}]},'
+        '{"day":9,"meals":[{"slot":"snack","title":"X","uses":[],"missing":[]}]}]}',
+        5);
+    expect(plan.length, 2);
+    expect((plan[0].title, plan[0].uses.single, plan[0].missing.single), ('Kuře na paprice', 'Kuřecí prsa', 'Smetana'));
+    expect((plan[1].day, plan[1].slot), (4, 'dinner')); // clamped / fixed
+  });
 }
