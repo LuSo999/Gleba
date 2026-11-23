@@ -231,4 +231,13 @@ class DemoRepository implements GlebaRepository {
     _prefs = prefs;
     _changed();
   }
+
+  @override
+  Future<void> saveDevice(String uid, String deviceId, Map<String, Object?> data) async {}
+
+  @override
+  Future<void> deleteDevice(String uid, String deviceId) async {}
+
+  @override
+  Future<void> snoozeItem(String uid, PantryItem item, DateTime until) async {}
 }

@@ -1,0 +1,162 @@
+/**
+ * Gleba Cloud Functions.
+ *
+ *  - notify: every 15 minutes, works out which expiry notifications are due for
+ *    every user (their own rules, all their households) and sends them via FCM.
+ *    Members who opted in also get one summary of what the others in the
+ *    household added / ate / threw away since the last summary.
+ *
+ * Only a scheduled function (no Firestore triggers), so it works whatever
+ * region the Firestore database is in.
+ */
+import { initializeApp } from 'firebase-admin/app';
+import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { logger } from 'firebase-functions';
+
+import { activityText, langOf, texts } from './i18n.js';
+import { defaultPrefs, plan, type Item, type Prefs, type Rule } from './planner.js';
+import { localDate, localMinutes } from './time.js';
+import { inQuiet } from './planner.js';
+
+initializeApp();
+const db = getFirestore();
+const REGION = 'europe-west3';
+const SENT_TTL_DAYS = 45;
+
+interface Device { token: string; tz?: string; locale?: string }
+
+function toDate(v: unknown): Date | null {
+  if (v instanceof Timestamp) return v.toDate();
+  if (v instanceof Date) return v;
+  return null;
+}
+
+async function sendToUser(uid: string, devices: { id: string; data: Device }[], data: Record<string, string>) {
+  const tokens = devices.map((d) => d.data.token).filter(Boolean);
+  if (!tokens.length) return;
+  const res = await getMessaging().sendEachForMulticast({
+    tokens,
+    data,
+    android: { priority: 'high', ttl: 6 * 3600 * 1000 },
+  });
+  // Forget devices whose token is no longer valid (app uninstalled, etc.).
+  await Promise.all(res.responses.map((r, i) => {
+    const code = r.error?.code ?? '';
+    if (code.includes('registration-token-not-registered') || code.includes('invalid-argument')) {
+      const dev = devices.find((d) => d.data.token === tokens[i]);
+      return dev ? db.doc(`users/${uid}/devices/${dev.id}`).delete() : null;
+    }
+    return null;
+  }));
+}
+
+async function processUser(uid: string, now: Date) {
+  const userRef = db.doc(`users/${uid}`);
+  const [devSnap, prefsSnap, rulesSnap, snoozeSnap, households] = await Promise.all([
+    userRef.collection('devices').get(),
+    userRef.collection('preferences').doc('notifications').get(),
+    userRef.collection('notificationRules').get(),
+    userRef.collection('snoozes').get(),
+    db.collection('households').where('memberIds', 'array-contains', uid).get(),
+  ]);
+  const devices = devSnap.docs.map((d) => ({ id: d.id, data: d.data() as Device })).filter((d) => d.data.token);
+  if (!devices.length) return;
+  const tz = devices[0].data.tz || 'Europe/Prague';
+  const lang = langOf(devices[0].data.locale);
+  const prefs: Prefs = { ...defaultPrefs, ...(prefsSnap.data() as Partial<Prefs> | undefined) };
+  const rules = rulesSnap.docs.map((d) => d.data() as Rule);
+  const snoozes: Record<string, Date> = {};
+  for (const s of snoozeSnap.docs) {
+    const until = toDate(s.get('until'));
+    if (until) snoozes[s.id] = until;
+  }
+
+  const items: Item[] = [];
+  for (const h of households.docs) {
+    const snap = await h.ref.collection('items').where('status', '==', 'active').get();
+    for (const d of snap.docs) {
+      const exp = toDate(d.get('expiryDate'));
+      if (!exp) continue;
+      items.push({
+        id: d.id, householdId: h.id, name: d.get('name') ?? '', categoryId: d.get('categoryId') ?? 'other',
+        ean: d.get('ean') ?? null, expiry: localDate(exp, tz),
+        dateType: d.get('dateType') === 'bestBefore' ? 'bestBefore' : 'useBy',
+      });
+    }
+  }
+
+  // Which of the candidate keys were already sent?
+  const candidates = plan({ now, tz, items, rules, prefs, snoozes, alreadySent: new Set() });
+  const sentRefs = candidates.map((c) => userRef.collection('sent').doc(c.key.replace(/\//g, '_')));
+  const sentDocs = sentRefs.length ? await db.getAll(...sentRefs) : [];
+  const alreadySent = new Set(candidates.filter((_, i) => sentDocs[i].exists).map((c) => c.key));
+  const due = candidates.filter((c) => !alreadySent.has(c.key));
+
+  for (const [i, d] of due.entries()) {
+    const t = texts(lang, d);
+    const single = d.kind !== 'digest';
+    await sendToUser(uid, devices, {
+      kind: d.kind,
+      title: t.title,
+      body: t.body,
+      tag: d.key,
+      householdId: single ? d.items[0].householdId : '',
+      itemId: single ? d.items[0].id : '',
+    });
+    const expireAt = Timestamp.fromMillis(now.getTime() + SENT_TTL_DAYS * 86400000);
+    await sentRefs[candidates.indexOf(d)].set({ key: d.key, at: FieldValue.serverTimestamp(), expireAt });
+    if (d.kind === 'snooze') await userRef.collection('snoozes').doc(d.items[0].id).delete();
+    logger.debug('sent', { uid, key: d.key, i });
+  }
+
+  // Household activity summary (opt-in), outside quiet hours.
+  const stateRef = userRef.collection('state').doc('notify');
+  if (prefs.othersActivity && !inQuiet(localMinutes(now, tz), prefs)) {
+    const since = toDate((await stateRef.get()).get('activitySince')) ?? now;
+    const activity: { byName: string; type: string }[] = [];
+    for (const h of households.docs) {
+      const ev = await h.ref.collection('events').where('at', '>', Timestamp.fromDate(since))
+        .where('at', '<=', Timestamp.fromDate(now)).get();
+      for (const e of ev.docs) {
+        if (e.get('by') !== uid && ['added', 'consumed', 'discarded'].includes(e.get('type'))) {
+          activity.push({ byName: e.get('byName') ?? '', type: e.get('type') });
+        }
+      }
+    }
+    if (activity.length) {
+      const t = activityText(lang, activity);
+      await sendToUser(uid, devices, { kind: 'activity', title: t.title, body: t.body, tag: 'activity' });
+    }
+    await stateRef.set({ activitySince: Timestamp.fromDate(now) }, { merge: true });
+  } else if (!prefs.othersActivity) {
+    await stateRef.set({ activitySince: Timestamp.fromDate(now) }, { merge: true });
+  }
+
+  // Housekeeping: drop old idempotency records.
+  const old = await userRef.collection('sent').where('expireAt', '<', Timestamp.fromDate(now)).limit(200).get();
+  if (!old.empty) {
+    const batch = db.batch();
+    old.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  }
+}
+
+export const notify = onSchedule(
+  { schedule: 'every 15 minutes', region: REGION, timeZone: 'Europe/Prague', memory: '256MiB', maxInstances: 1 },
+  async () => {
+    const now = new Date();
+    // Users with at least one registered phone.
+    const devices = await db.collectionGroup('devices').select().get();
+    const uids = new Set(devices.docs.map((d) => d.ref.parent.parent!.id));
+    for (const uid of uids) {
+      try {
+        await processUser(uid, now);
+      } catch (e) {
+        logger.error('notify failed', { uid, error: String(e) });
+      }
+    }
+    logger.info('notify done', { users: uids.size, at: localDate(now, 'Europe/Prague') });
+  },
+);

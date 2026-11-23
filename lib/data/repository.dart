@@ -78,6 +78,13 @@ abstract class GlebaRepository {
   Future<void> deleteNotificationRule(String uid, NotificationRule rule);
   Stream<NotificationPrefs> watchNotificationPrefs(String uid);
   Future<void> saveNotificationPrefs(String uid, NotificationPrefs prefs);
+
+  /// Registers a phone for push notifications (FCM token, time zone, language).
+  Future<void> saveDevice(String uid, String deviceId, Map<String, Object?> data);
+  Future<void> deleteDevice(String uid, String deviceId);
+
+  /// "Remind me tomorrow" – the server skips the item until [until].
+  Future<void> snoozeItem(String uid, PantryItem item, DateTime until);
 }
 
 /// Invite codes: 8 chars, no look-alike characters (0/O, 1/I/L).

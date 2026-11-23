@@ -288,4 +288,19 @@ class FirestoreRepository implements GlebaRepository {
   @override
   Future<void> saveNotificationPrefs(String uid, NotificationPrefs prefs) =>
       _user(uid).collection('preferences').doc('notifications').set(prefs.toMap());
+
+  @override
+  Future<void> saveDevice(String uid, String deviceId, Map<String, Object?> data) => _user(uid)
+      .collection('devices')
+      .doc(deviceId)
+      .set({...data, 'updatedAt': FieldValue.serverTimestamp()});
+
+  @override
+  Future<void> deleteDevice(String uid, String deviceId) => _user(uid).collection('devices').doc(deviceId).delete();
+
+  @override
+  Future<void> snoozeItem(String uid, PantryItem item, DateTime until) => _user(uid)
+      .collection('snoozes')
+      .doc(item.id)
+      .set({'until': Timestamp.fromDate(until), 'householdId': item.householdId});
 }

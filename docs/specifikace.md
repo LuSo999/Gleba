@@ -36,8 +36,10 @@ Ukončení položky: **Snězeno / Vyhozeno / Částečně**. Vše se zapisuje do
   - čas doručení, tichý režim
 - **Ranní souhrn** v nastavenou hodinu (zap/vyp).
 - **Tlačítka v upozornění:** Snězeno / Vyhozeno / Odložit.
-- Android: lokálně plánovaná upozornění (bez serveru) + synchronizace na pozadí.
-  Web/iOS PWA: web push přes FCM (vyžaduje Cloud Functions, tedy tarif Blaze).
+- **Posílá je server** (Cloud Functions každých 15 minut, FCM), jen do telefonů s Android aplikací. Čas pravidla se dodrží s přesností do 15 minut.
+- Prošlé věci: připomínat **každý den** (výchozí), nebo jen jednou.
+- **Nerušit** (globální okno, např. 22:00–7:00); upozornění v té době počkají na jeho konec.
+- **Co dělají ostatní** (volba, výchozí vypnutá): souhrn „Jana: přidáno 6, snědeno 2“.
 
 ## 5. Obrazovky a vzhled
 **Hlavní obrazovka = lednice s mrazákem pod sebou.**

@@ -65,6 +65,51 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 onChanged: (t) => savePrefs(prefs.copyWith(digestHour: t.hour, digestMinute: t.minute)),
               ),
             ),
+          SwitchListTile(
+            secondary: const Icon(Icons.replay),
+            title: Text(l.repeatExpired),
+            subtitle: Text(l.repeatExpiredText),
+            value: prefs.repeatExpired,
+            onChanged: (v) => savePrefs(prefs.copyWith(repeatExpired: v)),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.groups_outlined),
+            title: Text(l.othersActivity),
+            subtitle: Text(l.othersActivityText),
+            value: prefs.othersActivity,
+            onChanged: (v) => savePrefs(prefs.copyWith(othersActivity: v)),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.bedtime_outlined),
+            title: Text(l.quietHours),
+            subtitle: prefs.quietEnabled
+                ? Text('${_fmt(context, prefs.quietFrom)} – ${_fmt(context, prefs.quietTo)}')
+                : null,
+            value: prefs.quietEnabled,
+            onChanged: (v) => savePrefs(prefs.copyWith(quietEnabled: v)),
+          ),
+          if (prefs.quietEnabled)
+            Padding(
+              padding: const EdgeInsets.only(left: 72, right: 16),
+              child: Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(l.from),
+                  _TimeButton(
+                    hour: prefs.quietFrom ~/ 60,
+                    minute: prefs.quietFrom % 60,
+                    onChanged: (t) => savePrefs(prefs.copyWith(quietFrom: t.hour * 60 + t.minute)),
+                  ),
+                  Text(l.to),
+                  _TimeButton(
+                    hour: prefs.quietTo ~/ 60,
+                    minute: prefs.quietTo % 60,
+                    onChanged: (t) => savePrefs(prefs.copyWith(quietTo: t.hour * 60 + t.minute)),
+                  ),
+                ],
+              ),
+            ),
           _Header(l.defaultsSection),
           for (final t in DateType.values)
             _RuleTile(
@@ -119,6 +164,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
     );
   }
 }
+
+String _fmt(BuildContext context, int minutes) =>
+    TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60).format(context);
 
 class _Header extends StatelessWidget {
   const _Header(this.text);

@@ -77,6 +77,7 @@ void main() {
     await settle(tester);
     expect(find.text('Čas'), findsOneWidget);
 
+    await tester.scrollUntilVisible(find.text('Přidat výjimku pro kategorii'), 200);
     await tester.tap(find.text('Přidat výjimku pro kategorii'));
     await settle(tester);
     await tester.tap(find.textContaining('Mléko').first);

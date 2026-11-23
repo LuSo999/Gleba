@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
+import '../../services/push_service.dart';
 import '../labels.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -60,6 +61,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.logout),
             title: Text(l.signOut),
             onTap: () async {
+              if (user != null) await PushService.instance.unregister(ref.read(repositoryProvider), user);
               await ref.read(authServiceProvider).signOut();
               if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
             },

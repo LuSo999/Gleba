@@ -1,16 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_state.dart';
 import '../domain/models.dart';
-import '../l10n/app_localizations.dart';
 import '../services/notification_service.dart';
+import '../services/push_service.dart';
 import 'widgets/item_sheet.dart';
 
-/// Keeps the phone's scheduled notifications in sync with the data and
-/// handles taps on notification buttons (eaten / thrown away / snooze).
+/// Registers the phone for push notifications after sign-in and handles the
+/// notification buttons (eaten / thrown away / remind me tomorrow).
 class NotificationScheduler extends ConsumerStatefulWidget {
   const NotificationScheduler({super.key, required this.child});
 
@@ -21,39 +19,22 @@ class NotificationScheduler extends ConsumerStatefulWidget {
 }
 
 class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
-  Timer? _debounce;
-  bool _ready = false;
-
   @override
   void initState() {
     super.initState();
-    if (!NotificationService.supported) return;
+    // Demo mode has no server, so no push notifications.
+    if (!NotificationService.supported || ref.read(isDemoProvider)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _register());
     NotificationService.instance.init(_handle).then((launchAction) {
-      _ready = true;
-      _schedule();
       if (launchAction != null) _handle(launchAction);
     });
   }
 
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
-  }
-
-  AppLocalizations get _l => lookupAppLocalizations(
-      ref.read(settingsProvider).locale ?? WidgetsBinding.instance.platformDispatcher.locale);
-
-  void _schedule() {
-    if (!_ready) return;
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 2), () {
-      final items = ref.read(allItemsProvider).value;
-      final rules = ref.read(notificationRulesProvider).value;
-      final prefs = ref.read(notificationPrefsProvider).value;
-      if (items == null || rules == null || prefs == null) return;
-      NotificationService.instance.reschedule(items: items, rules: rules, prefs: prefs, l: _l);
-    });
+  void _register() {
+    final user = ref.read(userProvider).value;
+    if (user == null || ref.read(isDemoProvider)) return;
+    final locale = ref.read(settingsProvider).locale ?? WidgetsBinding.instance.platformDispatcher.locale;
+    PushService.instance.register(ref.read(repositoryProvider), user, locale.languageCode);
   }
 
   Future<void> _handle(NotificationAction a) async {
@@ -68,29 +49,29 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
     switch (a.action) {
       case 'eaten' || 'discarded':
         final how = a.action == 'eaten' ? ItemStatus.consumed : ItemStatus.discarded;
+        ref.read(activeHouseholdIdProvider.notifier).select(hid);
         final ctx = navigatorContext;
         if (ctx != null && ctx.mounted) {
-          ref.read(activeHouseholdIdProvider.notifier).select(hid);
           await finishWithFanfare(ctx, ref, item, how);
         } else {
           await repo.finishItem(hid, item, how, user);
         }
       case 'snooze':
-        await NotificationService.instance.snooze(item, _l);
+        await repo.snoozeItem(user.uid, item, DateTime.now().add(const Duration(days: 1)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (NotificationService.supported) {
-      ref.listen(allItemsProvider, (_, _) => _schedule());
-      ref.listen(notificationRulesProvider, (_, _) => _schedule());
-      ref.listen(notificationPrefsProvider, (_, _) => _schedule());
-      ref.listen(settingsProvider, (_, _) => _schedule());
+    if (NotificationService.supported && !ref.read(isDemoProvider)) {
+      ref.listen(userProvider, (_, _) => _register());
+      ref.listen(settingsProvider, (prev, next) {
+        if (prev?.locale != next.locale) _register();
+      });
     }
     return widget.child;
   }
 }
 
-/// Set by the app so notification actions can show the fanfare animation.
+/// Set by the app so notification actions can show the undo snackbar.
 BuildContext? navigatorContext;

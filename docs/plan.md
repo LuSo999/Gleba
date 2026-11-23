@@ -22,7 +22,8 @@
 - [x] Hlavní obrazovka „lednice“ s animacemi + seznam „Spotřebuj nejdřív“
 - [x] Upozornění: logika vrstvených pravidel a ranního souhrnu (testováno)
 - [x] Upozornění: plánování v telefonu, obrazovka nastavení (výchozí / kategorie / produkt, ranní souhrn), tlačítka Snězeno/Vyhozeno/Odložit
-- [ ] Upozornění: aktualizace na pozadí, když něco přidá jiný člen domácnosti (FCM + Cloud Functions, Blaze je zapnutý)
+- [x] Upozornění ze serveru (Cloud Functions každých 15 min + FCM): okamžitě i pro položky ostatních členů, opakování prošlých, tichý režim, souhrn aktivity ostatních, odložení na zítra
+- [x] Historie domácnosti + tlačítko Zpět
 - [x] Offline režim (Firestore cache)
 - [x] Alergeny, Nutri-Score
 
@@ -32,7 +33,7 @@
 - [ ] Statistiky, nákupní seznam, minimální zásoby
 - [ ] Inventurní režim
 - [ ] Widget
-- [ ] Web push (FCM + Cloud Functions)
+- [ ] ~~Web push~~ (nechceme – upozornění jen do telefonu)
 
 ## Fáze 3: Volitelné
 - [ ] Health Connect / Samsung Health

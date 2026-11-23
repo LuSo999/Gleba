@@ -52,6 +52,7 @@ dependencies:
   google_mlkit_text_recognition: ^1.0.3
   image_picker: ^1.2.4
   flutter_timezone: ^5.1.1
+  firebase_messaging: ^17.1.0
 
 dev_dependencies:
   flutter_test:

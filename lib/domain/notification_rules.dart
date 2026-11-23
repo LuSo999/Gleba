@@ -1,9 +1,10 @@
 /// Layered notification rules: default → category → product.
+/// The server (functions/src/planner.ts) evaluates them and sends push
+/// notifications; the app only edits them.
 /// The most specific enabled-or-disabled rule wins, so a user can e.g. turn
 /// notifications off for "drinks" but keep them on for one particular juice.
 library;
 
-import 'freshness.dart';
 import 'models.dart';
 
 enum RuleScope { defaults, category, product }
@@ -80,6 +81,11 @@ class NotificationPrefs {
     this.morningDigest = false,
     this.digestHour = 7,
     this.digestMinute = 30,
+    this.repeatExpired = true,
+    this.othersActivity = false,
+    this.quietEnabled = false,
+    this.quietFrom = 22 * 60,
+    this.quietTo = 7 * 60,
   });
 
   final bool itemNotifications;
@@ -87,29 +93,69 @@ class NotificationPrefs {
   final int digestHour;
   final int digestMinute;
 
-  NotificationPrefs copyWith({bool? itemNotifications, bool? morningDigest, int? digestHour, int? digestMinute}) =>
+  /// Remind about expired items every day until they are dealt with.
+  final bool repeatExpired;
+
+  /// Summary of what other household members added / ate / threw away.
+  final bool othersActivity;
+
+  /// Global "do not disturb"; times are minutes since midnight.
+  final bool quietEnabled;
+  final int quietFrom;
+  final int quietTo;
+
+  NotificationPrefs copyWith({
+    bool? itemNotifications,
+    bool? morningDigest,
+    int? digestHour,
+    int? digestMinute,
+    bool? repeatExpired,
+    bool? othersActivity,
+    bool? quietEnabled,
+    int? quietFrom,
+    int? quietTo,
+  }) =>
       NotificationPrefs(
         itemNotifications: itemNotifications ?? this.itemNotifications,
         morningDigest: morningDigest ?? this.morningDigest,
         digestHour: digestHour ?? this.digestHour,
         digestMinute: digestMinute ?? this.digestMinute,
+        repeatExpired: repeatExpired ?? this.repeatExpired,
+        othersActivity: othersActivity ?? this.othersActivity,
+        quietEnabled: quietEnabled ?? this.quietEnabled,
+        quietFrom: quietFrom ?? this.quietFrom,
+        quietTo: quietTo ?? this.quietTo,
       );
 
+  /// Field names are shared with the server (functions/src/planner.ts).
   Map<String, Object?> toMap() => {
         'itemNotifications': itemNotifications,
         'morningDigest': morningDigest,
         'digestHour': digestHour,
         'digestMinute': digestMinute,
+        'repeatExpired': repeatExpired,
+        'othersActivity': othersActivity,
+        'quietEnabled': quietEnabled,
+        'quietFrom': quietFrom,
+        'quietTo': quietTo,
       };
 
-  factory NotificationPrefs.fromMap(Map<String, Object?>? m) => m == null
-      ? const NotificationPrefs()
-      : NotificationPrefs(
-          itemNotifications: (m['itemNotifications'] as bool?) ?? true,
-          morningDigest: (m['morningDigest'] as bool?) ?? false,
-          digestHour: (m['digestHour'] as num?)?.toInt() ?? 7,
-          digestMinute: (m['digestMinute'] as num?)?.toInt() ?? 30,
-        );
+  factory NotificationPrefs.fromMap(Map<String, Object?>? m) {
+    if (m == null) return const NotificationPrefs();
+    int i(String k, int d) => (m[k] as num?)?.toInt() ?? d;
+    bool b(String k, bool d) => (m[k] as bool?) ?? d;
+    return NotificationPrefs(
+      itemNotifications: b('itemNotifications', true),
+      morningDigest: b('morningDigest', false),
+      digestHour: i('digestHour', 7),
+      digestMinute: i('digestMinute', 30),
+      repeatExpired: b('repeatExpired', true),
+      othersActivity: b('othersActivity', false),
+      quietEnabled: b('quietEnabled', false),
+      quietFrom: i('quietFrom', 22 * 60),
+      quietTo: i('quietTo', 7 * 60),
+    );
+  }
 }
 
 /// Picks the rule that applies to [item]. Within a scope, a rule for the
@@ -127,21 +173,6 @@ NotificationRule resolveRule(PantryItem item, List<NotificationRule> rules) {
       NotificationRule.builtInDefault;
 }
 
-enum PlannedKind { item, digest }
-
-class PlannedNotification {
-  const PlannedNotification({required this.id, required this.at, required this.kind, required this.itemIds});
-
-  /// Stable 31-bit id for the local notification plugin.
-  final int id;
-  final DateTime at;
-  final PlannedKind kind;
-  final List<String> itemIds;
-
-  @override
-  String toString() => 'Planned($kind, $at, $itemIds)';
-}
-
 /// Stable, platform-independent hash (FNV-1a) → positive 31-bit int.
 int stableId(String s) {
   var h = 0x811c9dc5;
@@ -150,54 +181,4 @@ int stableId(String s) {
     h = (h * 0x01000193) & 0xffffffff;
   }
   return h & 0x3fffffff; // keep clear of the digest id range
-}
-
-const _digestIdBase = 0x40000000;
-
-/// Computes every notification to schedule in the next [horizonDays].
-List<PlannedNotification> planNotifications({
-  required Iterable<PantryItem> items,
-  required List<NotificationRule> rules,
-  required NotificationPrefs prefs,
-  required DateTime now,
-  int horizonDays = 30,
-  int digestDays = 7,
-}) {
-  final out = <PlannedNotification>[];
-  final active = items.where((i) => i.status == ItemStatus.active).toList();
-  final horizon = now.add(Duration(days: horizonDays));
-
-  if (prefs.itemNotifications) {
-    for (final item in active) {
-      final rule = resolveRule(item, rules);
-      if (!rule.enabled) continue;
-      final day = dateOnly(item.expiryDate).subtract(Duration(days: rule.daysBefore));
-      final at = DateTime(day.year, day.month, day.day, rule.hour, rule.minute);
-      if (at.isAfter(now) && at.isBefore(horizon)) {
-        out.add(PlannedNotification(id: stableId(item.id), at: at, kind: PlannedKind.item, itemIds: [item.id]));
-      }
-    }
-  }
-
-  if (prefs.morningDigest) {
-    final today = dateOnly(now);
-    for (var d = 0; d < digestDays; d++) {
-      final day = today.add(Duration(days: d));
-      final at = DateTime(day.year, day.month, day.day, prefs.digestHour, prefs.digestMinute);
-      if (!at.isAfter(now)) continue;
-      final due = active.where((i) {
-        final rule = resolveRule(i, rules);
-        return rule.enabled && daysLeft(i.expiryDate, day) <= rule.daysBefore;
-      }).map((i) => i.id).toList();
-      if (due.isNotEmpty) {
-        out.add(PlannedNotification(
-            id: _digestIdBase + day.difference(DateTime(2020)).inDays % 100000,
-            at: at,
-            kind: PlannedKind.digest,
-            itemIds: due));
-      }
-    }
-  }
-  out.sort((a, b) => a.at.compareTo(b.at));
-  return out;
 }

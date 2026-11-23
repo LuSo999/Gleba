@@ -144,7 +144,7 @@
   "catDry": "Trvanlivé potraviny",
   "catSweets": "Sladkosti a snacky",
   "catOther": "Ostatní",
-  "notificationsAndroidOnly": "Upozornění zatím fungují v Android aplikaci. Na webu je přidáme později.",
+  "notificationsAndroidOnly": "Upozornění chodí do telefonu s aplikací Gleba (Android). Tady je můžete nastavit.",
   "itemNotifications": "Upozornění na jednotlivé produkty",
   "morningDigest": "Ranní souhrn",
   "morningDigestText": "Každé ráno přehled toho, co brzy projde",
@@ -213,5 +213,12 @@
   "histEdited": "Upraveno",
   "histRestored": "Vráceno do lednice",
   "today": "Dnes",
-  "yesterday": "Včera"
+  "yesterday": "Včera",
+  "repeatExpired": "Připomínat prošlé každý den",
+  "repeatExpiredText": "Dokud je neodepíšete. Vypnuto = jen jednou.",
+  "othersActivity": "Co dělají ostatní v domácnosti",
+  "othersActivityText": "Souhrn toho, co ostatní přidali, snědli nebo vyhodili",
+  "quietHours": "Nerušit",
+  "from": "Od",
+  "to": "Do"
 }

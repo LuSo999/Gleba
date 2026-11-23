@@ -28,22 +28,6 @@ void main() {
     expect(resolveRule(item('b', 'x', now), rules).daysBefore, 2);
   });
 
-  test('plans item notifications and morning digest', () {
-    final items = [item('soon', 'milk', DateTime(2026, 11, 26)), item('later', 'milk', DateTime(2026, 12, 20))];
-    final plan = planNotifications(
-      items: items,
-      rules: const [],
-      prefs: const NotificationPrefs(morningDigest: true),
-      now: now,
-    );
-    final itemPlans = plan.where((p) => p.kind == PlannedKind.item).toList();
-    expect(itemPlans.first.at, DateTime(2026, 11, 24, 9));
-    expect(itemPlans.length, 2);
-    final digests = plan.where((p) => p.kind == PlannedKind.digest).toList();
-    expect(digests.first.at, DateTime(2026, 11, 24, 7, 30));
-    expect(digests.first.itemIds, ['soon']);
-  });
-
   test('freshness and urgency ordering', () {
     final a = item('expired', 'milk', DateTime(2026, 11, 22));
     final b = item('bb', 'milk', DateTime(2026, 11, 20), type: DateType.bestBefore);
@@ -60,9 +44,13 @@ void main() {
     final back = NotificationRule.fromMap(r.toMap());
     expect(back.key, r.key);
     expect((back.enabled, back.daysBefore, back.hour, back.minute, back.label), (false, 5, 18, 15, 'Jogurt'));
-    const p = NotificationPrefs(itemNotifications: false, morningDigest: true, digestHour: 6, digestMinute: 45);
+    const p = NotificationPrefs(
+        itemNotifications: false, morningDigest: true, digestHour: 6, digestMinute: 45,
+        repeatExpired: false, othersActivity: true, quietEnabled: true, quietFrom: 1380, quietTo: 360);
     final pb = NotificationPrefs.fromMap(p.toMap());
     expect((pb.itemNotifications, pb.morningDigest, pb.digestHour, pb.digestMinute), (false, true, 6, 45));
+    expect((pb.repeatExpired, pb.othersActivity, pb.quietEnabled, pb.quietFrom, pb.quietTo), (false, true, true, 1380, 360));
+    expect(NotificationPrefs.fromMap(null).repeatExpired, isTrue);
     expect(NotificationPrefs.fromMap(null).itemNotifications, isTrue);
   });
 }

@@ -1,0 +1,43 @@
+name: Deploy to Firebase
+
+# Deploys the notification server (Cloud Functions) and Firestore rules.
+# Runs on every push to main, or manually: Actions → Deploy to Firebase → Run workflow.
+on:
+  push:
+    branches: [main]
+    paths: ['functions/**', 'firestore.rules', 'firestore.indexes.json', 'firebase.json']
+  workflow_dispatch:
+
+concurrency: deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install and test functions
+        working-directory: functions
+        run: |
+          npm ci
+          npm test
+
+      - name: Write service account key
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "::error::Missing secret FIREBASE_SERVICE_ACCOUNT (see README → Nasazení serveru)"; exit 1
+          fi
+          printf '%s' "$KEY" > "$RUNNER_TEMP/sa.json"
+
+      - name: Deploy functions and Firestore rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@latest deploy --only functions,firestore --project gleba-e9a60 --non-interactive --force

@@ -103,7 +103,7 @@
   "catDry": "Dry goods",
   "catSweets": "Sweets & snacks",
   "catOther": "Other",
-  "notificationsAndroidOnly": "Notifications currently work in the Android app. Web support comes later.",
+  "notificationsAndroidOnly": "Notifications go to phones with the Gleba app (Android). You can set them up here.",
   "itemNotifications": "Notifications for individual products",
   "morningDigest": "Morning digest",
   "morningDigestText": "Every morning, a summary of what expires soon",
@@ -142,5 +142,12 @@
   "histEdited": "Edited",
   "histRestored": "Put back",
   "today": "Today",
-  "yesterday": "Yesterday"
+  "yesterday": "Yesterday",
+  "repeatExpired": "Remind about expired items daily",
+  "repeatExpiredText": "Until you deal with them. Off = only once.",
+  "othersActivity": "What others in the household do",
+  "othersActivityText": "A summary of what others added, ate or threw away",
+  "quietHours": "Do not disturb",
+  "from": "From",
+  "to": "To"
 }

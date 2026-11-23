@@ -60,3 +60,17 @@ firestore.rules   bezpečnostní pravidla
   - SHA-1 `27:0B:E0:D7:4E:F1:E0:02:4D:BC:CB:06:0E:8A:41:65:88:DD:8E:34`
   - SHA-256 `28:A3:82:AB:C2:37:0C:CF:14:E2:EF:3D:54:56:AF:74:ED:B1:25:4F:C6:D3:CE:63:52:04:A4:55:6B:C9:48:FF`
 - Pro vydání na Google Play vytvoříme samostatný **produkční klíč**, který do repozitáře nikdy nepatří (GitHub Secrets).
+
+### Upozornění (server)
+Upozornění posílá server (`functions/`, Cloud Functions v regionu `europe-west3`): každých 15 minut projde položky, použije pravidla každého uživatele a pošle push do jeho telefonů (FCM). Telefon nic neplánuje, jen zobrazí zprávu s tlačítky Snězeno / Vyhozeno / Zítra.
+
+```bash
+cd functions && npm ci && npm test   # testy plánovače (časová pásma, tichý režim, odložení…)
+```
+
+### Nasazení serveru
+Nasazuje GitHub Action **Deploy to Firebase** (při změně v `main`, nebo ručně v záložce Actions). Potřebuje jednorázově tajný klíč:
+1. [Google Cloud konzole → IAM → Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts?project=gleba-e9a60) → **Create service account** (např. `github-deploy`).
+2. Role: **Editor** (Upravovatel). Pro osobní projekt nejjednodušší varianta; nasazení funkcí potřebuje přístup k Cloud Functions, Cloud Build, Artifact Registry, Cloud Scheduler a Firestore.
+3. U účtu → **Keys** → **Add key** → **JSON** → stáhne se soubor.
+4. GitHub → repozitář → **Settings → Secrets and variables → Actions → New repository secret**: název `FIREBASE_SERVICE_ACCOUNT`, hodnota = celý obsah JSON souboru. Soubor pak smažte.

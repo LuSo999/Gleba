@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +11,8 @@ import 'app_state.dart';
 import 'data/demo_repository.dart';
 import 'data/firebase_repository.dart';
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
+import 'services/push_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,9 @@ Future<void> main() async {
     // Offline-first: reads come from the local cache, writes sync later.
     FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
     firebaseReady = true;
+    if (NotificationService.supported) {
+      FirebaseMessaging.onBackgroundMessage(firebaseBackgroundMessage);
+    }
   } catch (e) {
     debugPrint('Firebase not available, running in demo mode: $e');
   }
