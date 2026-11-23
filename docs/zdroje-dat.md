@@ -6,7 +6,8 @@ Pořadí dotazů:
 2. **Databáze domácnosti** `households/{id}/products/{ean}`: co jsme už jednou zadali, včetně naší kategorie, umístění a obvyklé trvanlivosti.
 3. **Sdílená databáze Gleba** `products/{ean}`: co zadali ostatní uživatelé (bez osobních údajů) + průměrná trvanlivost z dat na obalech. Název cizí položky nejde přepsat; interní kódy obchodů (20–29) se nesdílí.
 4. **[Open Food Facts](https://world.openfoodfacts.org)**: otevřená a bezplatná databáze potravin (licence ODbL). Obsahuje název, značku, foto, kategorie, alergeny a Nutri-Score. České pokrytí je slušné u značkových výrobků, slabší u privátních značek obchodů.
-5. **Ručně / AI:** pokud nic nenajdeme, uživatel vyfotí obal a vyplní název (nebo ho přečte AI).
+5. **Příspěvky zpět:** produkt, který nikde nebyl, Gleba se souhlasem uživatele pošle do Open Food Facts (společný účet aplikace, anonymní `app_uuid`, limit 30/den/uživatele).
+6. **Ručně / AI:** pokud nic nenajdeme, uživatel vyfotí obal a vyplní název (nebo ho přečte AI).
 
 Další zdroje jsme zvažovali a zamítli: UPCitemdb a EAN-Search jsou placené nebo zaměřené na USA. GS1 (Verified by GS1) vrací jen vlastníka kódu, ne užitečné údaje o potravině.
 

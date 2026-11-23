@@ -67,6 +67,7 @@
         "node_modules",
         ".git",
         "src",
+        "scripts",
         "**/*.test.js"
       ],
       "predeploy": [

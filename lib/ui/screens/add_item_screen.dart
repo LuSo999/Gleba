@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -10,6 +11,7 @@ import '../../ai/ai_service.dart';
 import '../../ai/ai_tasks.dart';
 import '../../domain/expiry_date_parser.dart';
 import '../../domain/gs1_parser.dart';
+import '../../domain/shared_products.dart';
 import '../../domain/models.dart';
 import '../../domain/shelf_life.dart';
 import '../../services/ocr_service.dart';
@@ -220,6 +222,47 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     }
   }
 
+  /// A product nobody knew (not in the household, Gleba or OFF): offer to
+  /// add it to Open Food Facts. Asked once per device, then remembered.
+  Future<void> _maybeShareToOff(PantryItem item) async {
+    if (_product != null || !isShareableEan(item.ean) || ref.read(isDemoProvider) || !mounted) return;
+    final l = context.l;
+    var share = ref.read(settingsProvider).shareToOff;
+    if (share == null) {
+      share = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Text('🌍', style: TextStyle(fontSize: 32)),
+          title: Text(l.offAskTitle),
+          content: Text(l.offAskText),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.offNo)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l.offYes)),
+          ],
+        ),
+      );
+      if (share == null) return;
+      ref.read(settingsProvider.notifier).setShareToOff(share);
+    }
+    if (!share || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final lang = Localizations.localeOf(context).languageCode;
+    unawaited(() async {
+      try {
+        final res = await FirebaseFunctions.instanceFor(region: 'europe-west3').httpsCallable('offContribute').call({
+          'ean': item.ean,
+          'name': item.name,
+          'brand': item.brand,
+          'categoryId': item.categoryId,
+          'lang': lang,
+        });
+        if ((res.data as Map?)?['status'] == 'added') messenger.showSnackBar(SnackBar(content: Text(l.offSent)));
+      } catch (e) {
+        debugPrint('OFF contribution failed: $e'); // best-effort, never blocks adding food
+      }
+    }());
+  }
+
   Future<void> _save({bool next = false}) async {
     if (!_form.currentState!.validate()) return;
     final h = ref.read(activeHouseholdProvider);
@@ -252,6 +295,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
           ? null
           : dateOnly(_expiry).difference(dateOnly(DateTime.now())).inDays,
     ));
+    await _maybeShareToOff(item);
     if (!mounted) return;
     showBurst(context, categoryById(_categoryId).emoji,
         particles: const ['❄️', '✨'], enabled: ref.read(settingsProvider).animations);

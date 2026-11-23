@@ -74,3 +74,9 @@ Nasazuje GitHub Action **Deploy to Firebase** při každé změně v `main` (neb
 2. Role: **Editor** (Upravovatel). Pro osobní projekt nejjednodušší varianta; nasazení funkcí potřebuje přístup k Cloud Functions, Cloud Build, Artifact Registry, Cloud Scheduler a Firestore.
 3. U účtu → **Keys** → **Add key** → **JSON** → stáhne se soubor.
 4. GitHub → repozitář → **Settings → Secrets and variables → Actions → New repository secret**: název `FIREBASE_SERVICE_ACCOUNT`, hodnota = celý obsah JSON souboru. Soubor pak smažte.
+
+### Příspěvky do Open Food Facts (volitelné)
+Produkty, které nikde nebyly a uživatel je zadal, umí Gleba se souhlasem uživatele poslat do [Open Food Facts](https://world.openfoodfacts.org) (jen název, značka, kategorie; nikdy existující produkty nepřepisuje). Posílá je server společným účtem aplikace:
+1. Založte na Open Food Facts účet pro aplikaci (např. `gleba-app`) a vyplňte jejich formulář pro používání API.
+2. V GitHubu → Settings → Secrets and variables → Actions přidejte `OFF_USER_ID` a `OFF_PASSWORD` (volitelně `OFF_SALT` – libovolný náhodný text).
+3. Při příštím nasazení se účet uloží na server (`config/off`, klienti k němu nemají přístup). Bez těchto secrets je funkce vypnutá.

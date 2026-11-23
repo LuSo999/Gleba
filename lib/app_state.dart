@@ -113,11 +113,14 @@ final notificationPrefsProvider = StreamProvider<NotificationPrefs>((ref) {
 });
 
 class AppSettings {
-  const AppSettings({this.locale, this.animations = true, this.partialConsumption = true});
+  const AppSettings({this.locale, this.animations = true, this.partialConsumption = true, this.shareToOff});
 
   final Locale? locale;
   final bool animations;
   final bool partialConsumption;
+
+  /// Send products nobody knew to Open Food Facts; null = not asked yet.
+  final bool? shareToOff;
 
   Duration anim(Duration d) => animations ? d : Duration.zero;
 }
@@ -132,22 +135,36 @@ class SettingsNotifier extends Notifier<AppSettings> {
       locale: lang == null ? null : Locale(lang),
       animations: _prefs?.getBool('animations') ?? true,
       partialConsumption: _prefs?.getBool('partialConsumption') ?? true,
+      shareToOff: _prefs?.getBool('shareToOff'),
     );
+  }
+
+  AppSettings _copy({Locale? locale, bool clearLocale = false, bool? animations, bool? partial, bool? share}) =>
+      AppSettings(
+        locale: clearLocale ? null : (locale ?? state.locale),
+        animations: animations ?? state.animations,
+        partialConsumption: partial ?? state.partialConsumption,
+        shareToOff: share ?? state.shareToOff,
+      );
+
+  void setShareToOff(bool v) {
+    _prefs?.setBool('shareToOff', v);
+    state = _copy(share: v);
   }
 
   void setLocale(Locale? l) {
     l == null ? _prefs?.remove('locale') : _prefs?.setString('locale', l.languageCode);
-    state = AppSettings(locale: l, animations: state.animations, partialConsumption: state.partialConsumption);
+    state = _copy(locale: l, clearLocale: l == null);
   }
 
   void setAnimations(bool v) {
     _prefs?.setBool('animations', v);
-    state = AppSettings(locale: state.locale, animations: v, partialConsumption: state.partialConsumption);
+    state = _copy(animations: v);
   }
 
   void setPartialConsumption(bool v) {
     _prefs?.setBool('partialConsumption', v);
-    state = AppSettings(locale: state.locale, animations: state.animations, partialConsumption: v);
+    state = _copy(partial: v);
   }
 }
 

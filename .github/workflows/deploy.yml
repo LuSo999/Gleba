@@ -51,3 +51,12 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: npx --yes firebase-tools@latest deploy --only hosting,functions,firestore --project gleba-e9a60 --non-interactive --force
+
+      - name: Store the Open Food Facts app account (optional)
+        working-directory: functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          OFF_USER_ID: ${{ secrets.OFF_USER_ID }}
+          OFF_PASSWORD: ${{ secrets.OFF_PASSWORD }}
+          OFF_SALT: ${{ secrets.OFF_SALT }}
+        run: node scripts/set-off-config.mjs

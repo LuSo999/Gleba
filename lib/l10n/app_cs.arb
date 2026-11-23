@@ -414,5 +414,12 @@
   "takeScan": "Naskenovat kód",
   "takeOne": "−1",
   "takeAll": "Vzít vše",
-  "takeNotFound": "Tohle v lednici nemáte."
+  "takeNotFound": "Tohle v lednici nemáte.",
+  "offShare": "Posílat nové produkty do Open Food Facts",
+  "offShareText": "Když produkt nikde nenajdeme a vy ho zadáte, pošleme název, značku a kategorii (bez osobních údajů) do otevřené databáze Open Food Facts.",
+  "offAskTitle": "Poslat produkt do Open Food Facts?",
+  "offAskText": "Tenhle produkt zatím nikdo nezná. Můžeme jeho název, značku a kategorii poslat do otevřené databáze Open Food Facts, aby ho příště našli i ostatní. Neposíláme nic o vás.",
+  "offYes": "Ano, posílat",
+  "offNo": "Ne",
+  "offSent": "Odesláno do Open Food Facts 🌍"
 }

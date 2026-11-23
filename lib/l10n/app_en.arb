@@ -254,5 +254,12 @@
   "takeScan": "Scan code",
   "takeOne": "−1",
   "takeAll": "Take all",
-  "takeNotFound": "You don't have this in the fridge."
+  "takeNotFound": "You don't have this in the fridge.",
+  "offShare": "Send new products to Open Food Facts",
+  "offShareText": "When a product isn't found anywhere and you enter it, its name, brand and category (no personal data) are sent to the open Open Food Facts database.",
+  "offAskTitle": "Send the product to Open Food Facts?",
+  "offAskText": "Nobody knows this product yet. We can send its name, brand and category to the open Open Food Facts database so others find it next time. Nothing about you is sent.",
+  "offYes": "Yes, send",
+  "offNo": "No",
+  "offSent": "Sent to Open Food Facts 🌍"
 }

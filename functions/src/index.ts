@@ -18,6 +18,7 @@ import { logger } from 'firebase-functions';
 
 import { AiError, callProvider, defaultModels, type Provider } from './ai.js';
 import { activityText, langOf, texts } from './i18n.js';
+import { appUuid, offHasProduct, submitToOff, type OffAccount } from './off.js';
 import { defaultPrefs, plan, type Item, type Prefs, type Rule } from './planner.js';
 import { localDate, localMinutes } from './time.js';
 import { inQuiet } from './planner.js';
@@ -218,4 +219,49 @@ export const aiProxy = onCall({ region: REGION, timeoutSeconds: 120, memory: '51
     logger.warn('ai call failed', { provider, error: String(e) });
     throw new HttpsError('unavailable', e instanceof AiError ? e.message : 'AI request failed');
   }
+});
+
+// ---------------------------------------------------------------------------
+// Open Food Facts contributions (opt-in per user, new products only).
+
+const OFF_DAILY_LIMIT = 30;
+
+export const offContribute = onCall({ region: REGION, timeoutSeconds: 30 }, async (req) => {
+  const uid = req.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const { ean, name, brand, categoryId, quantity, lang } = req.data ?? {};
+  if (typeof ean !== 'string' || !/^(\d{8}|\d{13})$/.test(ean) || /^2\d/.test(ean)) {
+    throw new HttpsError('invalid-argument', 'Not a shareable EAN');
+  }
+  if (typeof name !== 'string' || !name.trim() || name.length > 200) throw new HttpsError('invalid-argument', 'Bad name');
+
+  // Gleba's OFF app account, written by the deploy workflow (never readable by clients).
+  const cfg = (await db.doc('config/off').get()).data() as (OffAccount & { salt?: string }) | undefined;
+  if (!cfg?.user || !cfg.password) throw new HttpsError('failed-precondition', 'off-not-configured');
+
+  // Per-user daily limit (spam protection on top of OFF's own).
+  const today = new Date().toISOString().slice(0, 10);
+  const limitRef = db.doc(`users/${uid}/state/off`);
+  const ok = await db.runTransaction(async (tx) => {
+    const s = (await tx.get(limitRef)).data();
+    const count = s?.day === today ? (s.count as number) : 0;
+    if (count >= OFF_DAILY_LIMIT) return false;
+    tx.set(limitRef, { day: today, count: count + 1 });
+    return true;
+  });
+  if (!ok) throw new HttpsError('resource-exhausted', 'Daily limit reached');
+
+  if (await offHasProduct(ean, cfg)) return { status: 'exists' };
+  try {
+    await submitToOff(
+      { ean, name, brand, categoryId, quantity, lang: lang === 'en' ? 'en' : 'cs' },
+      cfg,
+      appUuid(uid, cfg.salt ?? 'gleba'),
+    );
+  } catch (e) {
+    logger.warn('OFF contribution failed', { ean, error: String(e) });
+    throw new HttpsError('unavailable', 'Open Food Facts did not accept the product');
+  }
+  logger.info('OFF contribution', { ean });
+  return { status: 'added' };
 });
