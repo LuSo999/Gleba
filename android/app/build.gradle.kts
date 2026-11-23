@@ -4,6 +4,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keyProps = java.util.Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     namespace = "cz.gleba.gleba"
     compileSdk = maxOf(flutter.compileSdkVersion, 37) // flutter_local_notifications, androidx.core
@@ -40,13 +45,24 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // Upload key for Google Play. Never committed: CI writes it from the
+        // GitHub secrets (see .github/workflows/release.yml), locally it comes
+        // from android/key.properties (git-ignored).
+        val uploadStore = System.getenv("GLEBA_UPLOAD_STORE_FILE") ?: keyProps.getProperty("storeFile")
+        if (uploadStore != null) {
+            create("upload") {
+                storeFile = file(uploadStore)
+                storePassword = System.getenv("GLEBA_UPLOAD_STORE_PASSWORD") ?: keyProps.getProperty("storePassword")
+                keyAlias = System.getenv("GLEBA_UPLOAD_KEY_ALIAS") ?: keyProps.getProperty("keyAlias") ?: "upload"
+                keyPassword = System.getenv("GLEBA_UPLOAD_KEY_PASSWORD") ?: keyProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Play builds use the upload key; without it (local tries) the debug key.
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
 }

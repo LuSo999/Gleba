@@ -475,5 +475,10 @@
       "carbs": {},
       "fat": {}
     }
-  }
+  },
+  "deleteAccount": "Smazat účet",
+  "deleteAccountText": "Smažeme vaše data a nastavení, odebereme vás ze sdílených domácností a smažeme domácnosti, kde jste jediný člen. Nejde to vrátit.",
+  "deleteAccountConfirm": "Smazat natrvalo",
+  "deleteAccountDone": "Účet byl smazán.",
+  "privacyPolicy": "Zásady ochrany soukromí"
 }

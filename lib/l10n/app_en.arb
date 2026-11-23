@@ -293,5 +293,10 @@
   "healthWriteBtn": "Log",
   "healthSkip": "Skip",
   "healthWritten": "Logged to Health Connect 💚",
-  "healthPreview": "{kcal} kcal · P {protein} g · C {carbs} g · F {fat} g"
+  "healthPreview": "{kcal} kcal · P {protein} g · C {carbs} g · F {fat} g",
+  "deleteAccount": "Delete account",
+  "deleteAccountText": "We delete your data and settings, remove you from shared households and delete households where you are the only member. This can't be undone.",
+  "deleteAccountConfirm": "Delete permanently",
+  "deleteAccountDone": "Your account was deleted.",
+  "privacyPolicy": "Privacy policy"
 }

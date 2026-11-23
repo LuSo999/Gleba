@@ -10,6 +10,7 @@
  * region the Firestore database is in.
  */
 import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -264,4 +265,27 @@ export const offContribute = onCall({ region: REGION, timeoutSeconds: 30 }, asyn
   }
   logger.info('OFF contribution', { ean });
   return { status: 'added' };
+});
+
+// ---------------------------------------------------------------------------
+// Account deletion (required by Google Play): the user's own data, their
+// membership in shared households, households where they were the only
+// member, and the sign-in account itself.
+
+export const deleteAccount = onCall({ region: REGION, timeoutSeconds: 120 }, async (req) => {
+  const uid = req.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Sign in first.');
+  const households = await db.collection('households').where('memberIds', 'array-contains', uid).get();
+  for (const h of households.docs) {
+    const members: string[] = h.get('memberIds') ?? [];
+    if (members.length <= 1) {
+      await db.recursiveDelete(h.ref); // nobody else uses it
+    } else {
+      await h.ref.update({ memberIds: FieldValue.arrayRemove(uid) });
+    }
+  }
+  await db.recursiveDelete(db.doc(`users/${uid}`));
+  await getAuth().deleteUser(uid);
+  logger.info('account deleted', { households: households.size });
+  return { ok: true };
 });

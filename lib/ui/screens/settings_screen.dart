@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -101,6 +102,11 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/ai'),
           ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: Text(l.privacyPolicy),
+            subtitle: const Text('gleba-e9a60.web.app/privacy.html'),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
@@ -109,6 +115,41 @@ class SettingsScreen extends ConsumerWidget {
               if (user != null) await PushService.instance.unregister(ref.read(repositoryProvider), user);
               await ref.read(authServiceProvider).signOut();
               if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_forever_outlined, color: Theme.of(context).colorScheme.error),
+            title: Text(l.deleteAccount, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            onTap: () async {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  icon: const Icon(Icons.warning_amber),
+                  title: Text(l.deleteAccount),
+                  content: Text(l.deleteAccountText),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(l.deleteAccountConfirm),
+                    ),
+                  ],
+                ),
+              );
+              if (ok != true || user == null || !context.mounted) return;
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await PushService.instance.unregister(ref.read(repositoryProvider), user);
+                if (!ref.read(isDemoProvider)) {
+                  await FirebaseFunctions.instanceFor(region: 'europe-west3').httpsCallable('deleteAccount').call();
+                }
+                await ref.read(authServiceProvider).signOut();
+                messenger.showSnackBar(SnackBar(content: Text(l.deleteAccountDone)));
+                if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+              } catch (e) {
+                messenger.showSnackBar(SnackBar(content: Text('$e')));
+              }
             },
           ),
         ],
