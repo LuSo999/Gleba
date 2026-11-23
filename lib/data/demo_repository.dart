@@ -201,6 +201,41 @@ class DemoRepository implements GlebaRepository {
   }
 
   @override
+  Future<List<HistoryEvent>> fetchEvents(String householdId, {DateTime? since}) async => [
+        ...(_events[householdId] ?? const []).where((e) => since == null || !e.at.isBefore(since)),
+        ..._demoPast.where((e) => householdId == 'home' && (since == null || !e.at.isBefore(since))),
+      ];
+
+  /// Pretend history so the statistics screen has something to show in the demo.
+  late final List<HistoryEvent> _demoPast = () {
+    final now = DateTime.now();
+    final out = <HistoryEvent>[];
+    const eaten = [('Bílý jogurt', 'yogurt'), ('Mléko', 'milk'), ('Šunka', 'deli'), ('Rajčata', 'vegetables'),
+      ('Chléb', 'bread'), ('Kuřecí prsa', 'poultry'), ('Eidam', 'cheeseHard')];
+    const thrown = [('Bílý jogurt', 'yogurt', 12.9), ('Salát', 'vegetables', 24.9), ('Chléb', 'bread', 32.0),
+      ('Jahodový jogurt', 'yogurt', 14.9), ('Tvaroh', 'cheeseSoft', 21.9)];
+    for (var d = 3; d < 84; d++) {
+      final (name, cat) = eaten[d % eaten.length];
+      out.add(HistoryEvent(id: 'p$d', itemId: 'x$d', type: HistoryType.consumed,
+          at: now.subtract(Duration(days: d)), name: name, categoryId: cat, byName: d.isEven ? 'Demo' : 'Jana'));
+      if (d % 5 == 0) {
+        // Waste goes down over time: more of it longer ago.
+        if (d > 40 || d % 10 == 0) {
+          final (tn, tc, price) = thrown[d % thrown.length];
+          out.add(HistoryEvent(id: 't$d', itemId: 'y$d', type: HistoryType.discarded,
+              at: now.subtract(Duration(days: d)), name: tn, categoryId: tc, price: price,
+              byName: d.isEven ? 'Demo' : 'Jana', daysLeft: d % 3 == 0 ? -5 : -1));
+        }
+      }
+      if (d % 3 == 0) {
+        out.add(HistoryEvent(id: 'a$d', itemId: 'z$d', type: HistoryType.added,
+            at: now.subtract(Duration(days: d)), name: name, categoryId: cat, byName: d % 6 == 0 ? 'Demo' : 'Jana'));
+      }
+    }
+    return out;
+  }();
+
+  @override
   Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200}) =>
       _watch(() => (_events[householdId] ?? const []).take(limit).toList());
 

@@ -69,11 +69,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             tooltip: l.more,
             onSelected: (v) => switch (v) {
               'history' => context.push('/history'),
+              'stats' => context.push('/stats'),
               'invite' => showInviteDialog(context, ref, active),
               _ => context.push('/settings'),
             },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'history', child: ListTile(leading: const Icon(Icons.history), title: Text(l.historyTitle))),
+              PopupMenuItem(value: 'stats', child: ListTile(leading: const Icon(Icons.insights), title: Text(l.statsTitle))),
               PopupMenuItem(value: 'invite', child: ListTile(leading: const Icon(Icons.person_add_alt), title: Text(l.invite))),
               PopupMenuItem(value: 'settings', child: ListTile(leading: const Icon(Icons.settings_outlined), title: Text(l.settings))),
             ],

@@ -18,6 +18,7 @@ class HistoryEvent {
     this.price,
     this.by,
     this.byName,
+    this.daysLeft,
   });
 
   final String id;
@@ -31,6 +32,10 @@ class HistoryEvent {
   final double? price;
   final String? by;
   final String? byName;
+
+  /// For removals: days left until the date when it was eaten / thrown away
+  /// (negative = after the date).
+  final int? daysLeft;
 
   /// Eaten or thrown away – can be put back into the fridge.
   bool get isRemoval => type == HistoryType.consumed || type == HistoryType.discarded;
@@ -64,6 +69,7 @@ class HistoryEvent {
         'price': price,
         'by': by,
         'byName': byName,
+        'daysLeft': daysLeft,
       };
 
   factory HistoryEvent.fromMap(String id, Map<String, Object?> m) {
@@ -90,6 +96,7 @@ class HistoryEvent {
       price: (m['price'] as num?)?.toDouble(),
       by: m['by'] as String?,
       byName: m['byName'] as String?,
+      daysLeft: (m['daysLeft'] as num?)?.toInt(),
     );
   }
 }

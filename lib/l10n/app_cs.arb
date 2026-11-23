@@ -303,5 +303,50 @@
     }
   },
   "stockAuto": "doplněno automaticky",
-  "more": "Další"
+  "more": "Další",
+  "statsTitle": "Statistiky",
+  "stats30": "30 dní",
+  "stats90": "3 měsíce",
+  "stats365": "Rok",
+  "statsAll": "Vše",
+  "statsEatenShare": "Snězeno včas",
+  "statsThrown": "Vyhozeno",
+  "statsThrownValue": "Vyhozeno za",
+  "statsPieces": "{count} položek",
+  "@statsPieces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsVsPrev": "{delta} oproti minulému období",
+  "@statsVsPrev": {
+    "placeholders": {
+      "delta": {}
+    }
+  },
+  "statsOverTime": "Snědeno a vyhozeno",
+  "statsPerWeek": "po týdnech",
+  "statsPerMonth": "po měsících",
+  "statsEaten": "Snězeno",
+  "statsTopCategories": "Co se nejvíc vyhazuje",
+  "statsTopProducts": "Nejčastěji vyhozené produkty",
+  "statsMembers": "Kdo co dělá",
+  "statsAdded": "přidal(a)",
+  "statsTable": "Zobrazit tabulku",
+  "statsEmpty": "Zatím nemáme dost dat. Statistiky se plní, jak budete jídlo jíst a vyhazovat.",
+  "statsPriceHint": "Částky jen u věcí se známou cenou (z účtenek).",
+  "statsPeriod": "Období",
+  "statsTips": "Tipy",
+  "tipGreat": "Skvělé! Vyhazujete méně než desetinu jídla. 🎉",
+  "tipImproving": "Oproti minulému období vyhazujete méně. Jen tak dál!",
+  "tipTopCategory": "Nejvíc vyhazujete: {category}. Zkuste kupovat menší balení, nebo si pro tuto kategorii nastavte upozornění dřív.",
+  "@tipTopCategory": {
+    "placeholders": {
+      "category": {}
+    }
+  },
+  "tipForgotten": "Většina vyhozených věcí ležela v lednici dlouho po datu. Pomůže ranní souhrn nebo pravidelná inventura.",
+  "tipSetEarlier": "Upozorňovat dřív"
 }

@@ -199,4 +199,34 @@ void main() {
     await tester.scrollUntilVisible(find.textContaining('Hlídané zásoby'), 200, scrollable: find.ancestor(of: find.text('Máslo · 1 ks'), matching: find.byType(Scrollable)).first);
     expect(find.textContaining('Hlídané zásoby'), findsOneWidget);
   });
+
+  testWidgets('statistics screen shows KPIs, chart and tips from history', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final auth = DemoAuthService();
+    await auth.signInWithGoogle();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        isDemoProvider.overrideWithValue(true),
+        authServiceProvider.overrideWithValue(auth),
+        repositoryProvider.overrideWithValue(DemoRepository()),
+      ],
+      child: const GlebaApp(),
+    ));
+    await settle(tester);
+    await tester.tap(find.byTooltip('Další'));
+    await settle(tester);
+    await tester.tap(find.text('Statistiky'));
+    await settle(tester);
+    expect(find.text('Snězeno včas'), findsOneWidget);
+    expect(find.textContaining('Snědeno a vyhozeno'), findsOneWidget);
+    await tester.tap(find.text('3 měsíce'));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('Co se nejvíc vyhazuje'), 200,
+        scrollable: find.ancestor(of: find.text('Snězeno včas'), matching: find.byType(Scrollable)).first);
+    expect(find.text('Co se nejvíc vyhazuje'), findsOneWidget);
+  });
 }

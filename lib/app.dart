@@ -15,6 +15,7 @@ import 'ui/screens/households_screen.dart';
 import 'ui/screens/notification_settings_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/shopping_screen.dart';
+import 'ui/screens/stats_screen.dart';
 import 'ui/screens/sign_in_screen.dart';
 import 'ui/theme.dart';
 
@@ -47,6 +48,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           mode: AddMode.values.where((m) => m.name == s.uri.queryParameters['mode']).firstOrNull ?? AddMode.manual,
         ),
       ),
+      GoRoute(path: '/stats', builder: (_, _) => const StatsScreen()),
       GoRoute(path: '/shopping', builder: (_, _) => const ShoppingScreen()),
       GoRoute(path: '/receipt', builder: (_, _) => const ReceiptScreen()),
       GoRoute(path: '/recipes', builder: (_, _) => const RecipesScreen()),

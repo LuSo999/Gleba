@@ -67,6 +67,9 @@ abstract class GlebaRepository {
 
   Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200});
 
+  /// All history since [since] (null = everything), for statistics.
+  Future<List<HistoryEvent>> fetchEvents(String householdId, {DateTime? since});
+
   /// Product details this household already entered for [ean], if any.
   Future<ProductInfo?> householdProduct(String householdId, String ean);
   Future<void> rememberProduct(String householdId, PantryItem item);

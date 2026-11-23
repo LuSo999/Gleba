@@ -222,6 +222,14 @@ class FirestoreRepository implements GlebaRepository {
   }
 
   @override
+  Future<List<HistoryEvent>> fetchEvents(String householdId, {DateTime? since}) async {
+    Query<Map<String, dynamic>> q = _events(householdId);
+    if (since != null) q = q.where('at', isGreaterThanOrEqualTo: Timestamp.fromDate(since));
+    final snap = await q.get();
+    return snap.docs.map((d) => HistoryEvent.fromMap(d.id, d.data())).toList();
+  }
+
+  @override
   Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200}) => _events(householdId)
       .orderBy('at', descending: true)
       .limit(limit)
