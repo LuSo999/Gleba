@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -53,6 +54,16 @@ class FirestoreRepository implements GlebaRepository {
   FirestoreRepository(this._db);
 
   final FirebaseFirestore _db;
+
+  /// Offline-first writes: Firestore applies a write to the local cache at
+  /// once, but its Future only completes when the *server* confirms – without
+  /// signal (a cellar, a shop) the UI would hang. So we don't wait for the
+  /// server; pending writes are kept on disk and synced when back online.
+  Future<void> _local(Future<Object?> write) {
+    unawaited(write.then((_) {}, onError: (Object e) => debugPrint('Firestore write failed: $e')));
+    return Future.value();
+  }
+
   final _random = Random.secure();
 
   CollectionReference<Map<String, dynamic>> get _households => _db.collection('households');
@@ -62,8 +73,9 @@ class FirestoreRepository implements GlebaRepository {
   Stream<List<Household>> watchHouseholds(String uid) => _households
       .where('memberIds', arrayContains: uid)
       .snapshots()
-      .map((s) => s.docs.map((d) => Household.fromMap(d.id, d.data())).toList()
-        ..sort((a, b) => a.name.compareTo(b.name)));
+      .map(
+        (s) => s.docs.map((d) => Household.fromMap(d.id, d.data())).toList()..sort((a, b) => a.name.compareTo(b.name)),
+      );
 
   @override
   Future<String> createHousehold(String uid, String name) async {
@@ -79,13 +91,16 @@ class FirestoreRepository implements GlebaRepository {
     for (final (i, type) in LocationType.values.take(3).indexed) {
       batch.set(doc.collection('locations').doc(type.name), {'type': type.name, 'order': i});
     }
-    await batch.commit();
+    await _local(batch.commit());
     return doc.id;
   }
 
   @override
-  Future<void> leaveHousehold(String householdId, String uid) =>
-      _households.doc(householdId).update({'memberIds': FieldValue.arrayRemove([uid])});
+  Future<void> leaveHousehold(String householdId, String uid) => _local(
+    _households.doc(householdId).update({
+      'memberIds': FieldValue.arrayRemove([uid]),
+    }),
+  );
 
   @override
   Future<InviteInfo> createInvite(String householdId, String householdName, String uid) async {
@@ -111,8 +126,11 @@ class FirestoreRepository implements GlebaRepository {
     final expires = (d['expiresAt'] as Timestamp).toDate();
     if (expires.isBefore(DateTime.now()) || (d['uses'] as num) >= (d['maxUses'] as num)) return null;
     return InviteInfo(
-        code: snap.id, householdId: d['householdId'] as String, householdName: d['householdName'] as String,
-        expiresAt: expires);
+      code: snap.id,
+      householdId: d['householdId'] as String,
+      householdName: d['householdName'] as String,
+      expiresAt: expires,
+    );
   }
 
   @override
@@ -120,21 +138,24 @@ class FirestoreRepository implements GlebaRepository {
     final invite = await getInvite(code);
     if (invite == null) throw StateError('invalid-invite');
     // Security rules verify the invite in the same batch (see firestore.rules).
+    // Joining needs the server's yes, so this one does wait (needs internet).
     await (_db.batch()
           ..update(_db.collection('invites').doc(invite.code), {'uses': FieldValue.increment(1)})
           ..update(_households.doc(invite.householdId), {
             'memberIds': FieldValue.arrayUnion([uid]),
             'lastJoinCode': invite.code,
           }))
-        .commit();
+        .commit()
+        .timeout(const Duration(seconds: 20));
     return invite.householdId;
   }
 
   @override
-  Stream<List<PantryItem>> watchActiveItems(String householdId) => _items(householdId)
-      .where('status', isEqualTo: ItemStatus.active.name)
-      .snapshots()
-      .map((s) => s.docs.map((d) => PantryItem.fromMap(d.id, d.data())).toList());
+  Stream<List<PantryItem>> watchActiveItems(String householdId) =>
+      _items(householdId)
+          .where('status', isEqualTo: ItemStatus.active.name)
+          .snapshots()
+          .map((s) => s.docs.map((d) => PantryItem.fromMap(d.id, d.data())).toList());
 
   Map<String, Object?> _toFirestore(PantryItem item) =>
       item.toMap().map((k, v) => MapEntry(k, v is DateTime ? Timestamp.fromDate(v) : v));
@@ -151,11 +172,15 @@ class FirestoreRepository implements GlebaRepository {
       ..['addedAt'] = FieldValue.serverTimestamp()
       ..['updatedAt'] = FieldValue.serverTimestamp();
     final saved = PantryItem.fromMap(doc.id, item.toMap());
-    await (_db.batch()
-          ..set(doc, data)
-          ..set(_events(householdId).doc(),
-              _eventData(HistoryEvent.forItem(saved, HistoryType.added, by: by.uid, byName: by.shortName))))
-        .commit();
+    await _local(
+      (_db.batch()
+            ..set(doc, data)
+            ..set(
+              _events(householdId).doc(),
+              _eventData(HistoryEvent.forItem(saved, HistoryType.added, by: by.uid, byName: by.shortName)),
+            ))
+          .commit(),
+    );
     if (item.ean != null) await rememberProduct(householdId, item);
   }
 
@@ -164,42 +189,59 @@ class FirestoreRepository implements GlebaRepository {
     final batch = _db.batch()
       ..update(_items(householdId).doc(item.id), _toFirestore(item)..['updatedAt'] = FieldValue.serverTimestamp());
     if (history != null) {
-      batch.set(_events(householdId).doc(),
-          _eventData(HistoryEvent.forItem(item, history, by: by?.uid, byName: by?.shortName)));
+      batch.set(
+        _events(householdId).doc(),
+        _eventData(HistoryEvent.forItem(item, history, by: by?.uid, byName: by?.shortName)),
+      );
     }
-    await batch.commit();
+    await _local(batch.commit());
   }
 
   @override
-  Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by,
-      {double? quantity}) async {
+  Future<String> finishItem(
+    String householdId,
+    PantryItem item,
+    ItemStatus how,
+    GlebaUser by, {
+    double? quantity,
+  }) async {
     final q = quantity ?? item.quantity;
     final remaining = item.quantity - q;
     final event = _events(householdId).doc();
-    await (_db.batch()
-          ..update(_items(householdId).doc(item.id), {
-            if (remaining > 0) 'quantity': remaining else 'status': how.name,
-            'updatedAt': FieldValue.serverTimestamp(),
-          })
-          ..set(
+    await _local(
+      (_db.batch()
+            ..update(_items(householdId).doc(item.id), {
+              if (remaining > 0) 'quantity': remaining else 'status': how.name,
+              'updatedAt': FieldValue.serverTimestamp(),
+            })
+            ..set(
               event,
-              _eventData(HistoryEvent.forItem(item,
+              _eventData(
+                HistoryEvent.forItem(
+                  item,
                   how == ItemStatus.discarded ? HistoryType.discarded : HistoryType.consumed,
-                  by: by.uid, byName: by.shortName, quantity: q))
-                ..['daysLeft'] = dateOnly(item.expiryDate).difference(dateOnly(DateTime.now())).inDays))
-        .commit();
+                  by: by.uid,
+                  byName: by.shortName,
+                  quantity: q,
+                ),
+              )..['daysLeft'] = dateOnly(item.expiryDate).difference(dateOnly(DateTime.now())).inDays,
+            ))
+          .commit(),
+    );
     return event.id;
   }
 
   @override
-  Future<void> undoFinish(String householdId, PantryItem original, String eventId) => (_db.batch()
-        ..update(_items(householdId).doc(original.id), {
-          'quantity': original.quantity,
-          'status': original.status.name,
-          'updatedAt': FieldValue.serverTimestamp(),
-        })
-        ..delete(_events(householdId).doc(eventId)))
-      .commit();
+  Future<void> undoFinish(String householdId, PantryItem original, String eventId) => _local(
+    (_db.batch()
+          ..update(_items(householdId).doc(original.id), {
+            'quantity': original.quantity,
+            'status': original.status.name,
+            'updatedAt': FieldValue.serverTimestamp(),
+          })
+          ..delete(_events(householdId).doc(eventId)))
+        .commit(),
+  );
 
   @override
   Future<void> restoreFromHistory(String householdId, HistoryEvent event, GlebaUser by) async {
@@ -211,15 +253,21 @@ class FirestoreRepository implements GlebaRepository {
     final restored = item.status == ItemStatus.active
         ? item.copyWith(quantity: item.quantity + q)
         : item.copyWith(status: ItemStatus.active, quantity: q);
-    await (_db.batch()
-          ..update(ref, {
-            'status': restored.status.name,
-            'quantity': restored.quantity,
-            'updatedAt': FieldValue.serverTimestamp(),
-          })
-          ..set(_events(householdId).doc(),
-              _eventData(HistoryEvent.forItem(restored, HistoryType.restored, by: by.uid, byName: by.shortName, quantity: q))))
-        .commit();
+    await _local(
+      (_db.batch()
+            ..update(ref, {
+              'status': restored.status.name,
+              'quantity': restored.quantity,
+              'updatedAt': FieldValue.serverTimestamp(),
+            })
+            ..set(
+              _events(householdId).doc(),
+              _eventData(
+                HistoryEvent.forItem(restored, HistoryType.restored, by: by.uid, byName: by.shortName, quantity: q),
+              ),
+            ))
+          .commit(),
+    );
   }
 
   @override
@@ -231,11 +279,12 @@ class FirestoreRepository implements GlebaRepository {
   }
 
   @override
-  Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200}) => _events(householdId)
-      .orderBy('at', descending: true)
-      .limit(limit)
-      .snapshots()
-      .map((s) => s.docs.map((d) => HistoryEvent.fromMap(d.id, d.data())).toList());
+  Stream<List<HistoryEvent>> watchHistory(String householdId, {int limit = 200}) =>
+      _events(householdId)
+          .orderBy('at', descending: true)
+          .limit(limit)
+          .snapshots()
+          .map((s) => s.docs.map((d) => HistoryEvent.fromMap(d.id, d.data())).toList());
 
   @override
   Future<ProductInfo?> householdProduct(String householdId, String ean) async {
@@ -285,8 +334,8 @@ class FirestoreRepository implements GlebaRepository {
             'categoryId': item.categoryId,
             'imageUrl': item.imageUrl,
             'source': 'gleba',
-            'shelfLifeStats': (shelfLifeDays == null ? const ShelfLifeStats() : const ShelfLifeStats().add(shelfLifeDays))
-                .toMap(),
+            'shelfLifeStats':
+                (shelfLifeDays == null ? const ShelfLifeStats() : const ShelfLifeStats().add(shelfLifeDays)).toMap(),
             'updatedAt': FieldValue.serverTimestamp(),
           });
         } else if (shelfLifeDays != null) {
@@ -301,17 +350,18 @@ class FirestoreRepository implements GlebaRepository {
   }
 
   @override
-  Future<void> rememberProduct(String householdId, PantryItem item) =>
-      _households.doc(householdId).collection('products').doc(item.ean).set({
-        'name': item.name,
-        'brand': item.brand,
-        'imageUrl': item.imageUrl,
-        'categoryId': item.categoryId,
-        'locationType': item.locationType?.name,
-        'shelfLifeDays': dateOnly(item.expiryDate).difference(dateOnly(DateTime.now())).inDays,
-        'lastPrice': item.price,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+  Future<void> rememberProduct(String householdId, PantryItem item) => _local(
+    _households.doc(householdId).collection('products').doc(item.ean).set({
+      'name': item.name,
+      'brand': item.brand,
+      'imageUrl': item.imageUrl,
+      'categoryId': item.categoryId,
+      'locationType': item.locationType?.name,
+      'shelfLifeDays': dateOnly(item.expiryDate).difference(dateOnly(DateTime.now())).inDays,
+      'lastPrice': item.price,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)),
+  );
 
   @override
   Future<PantryItem?> getItem(String householdId, String itemId) async {
@@ -322,44 +372,47 @@ class FirestoreRepository implements GlebaRepository {
   DocumentReference<Map<String, dynamic>> _user(String uid) => _db.collection('users').doc(uid);
 
   @override
-  Stream<List<NotificationRule>> watchNotificationRules(String uid) => _user(uid)
-      .collection('notificationRules')
-      .snapshots()
-      .map((s) => s.docs.map((d) => NotificationRule.fromMap(d.data())).toList());
+  Stream<List<NotificationRule>> watchNotificationRules(String uid) =>
+      _user(uid)
+          .collection('notificationRules')
+          .snapshots()
+          .map((s) => s.docs.map((d) => NotificationRule.fromMap(d.data())).toList());
 
   @override
   Future<void> saveNotificationRule(String uid, NotificationRule rule) =>
-      _user(uid).collection('notificationRules').doc(rule.key).set(rule.toMap());
+      _local(_user(uid).collection('notificationRules').doc(rule.key).set(rule.toMap()));
 
   @override
   Future<void> deleteNotificationRule(String uid, NotificationRule rule) =>
-      _user(uid).collection('notificationRules').doc(rule.key).delete();
+      _local(_user(uid).collection('notificationRules').doc(rule.key).delete());
 
   @override
-  Stream<NotificationPrefs> watchNotificationPrefs(String uid) => _user(uid)
-      .collection('preferences')
-      .doc('notifications')
-      .snapshots()
-      .map((d) => NotificationPrefs.fromMap(d.data()));
+  Stream<NotificationPrefs> watchNotificationPrefs(String uid) =>
+      _user(uid)
+          .collection('preferences')
+          .doc('notifications')
+          .snapshots()
+          .map((d) => NotificationPrefs.fromMap(d.data()));
 
   @override
   Future<void> saveNotificationPrefs(String uid, NotificationPrefs prefs) =>
-      _user(uid).collection('preferences').doc('notifications').set(prefs.toMap());
+      _local(_user(uid).collection('preferences').doc('notifications').set(prefs.toMap()));
 
   @override
-  Future<void> saveDevice(String uid, String deviceId, Map<String, Object?> data) => _user(uid)
-      .collection('devices')
-      .doc(deviceId)
-      .set({...data, 'updatedAt': FieldValue.serverTimestamp()});
+  Future<void> saveDevice(String uid, String deviceId, Map<String, Object?> data) =>
+      _local(_user(uid).collection('devices').doc(deviceId).set({...data, 'updatedAt': FieldValue.serverTimestamp()}));
 
   @override
-  Future<void> deleteDevice(String uid, String deviceId) => _user(uid).collection('devices').doc(deviceId).delete();
+  Future<void> deleteDevice(String uid, String deviceId) =>
+      _local(_user(uid).collection('devices').doc(deviceId).delete());
 
   @override
-  Future<void> snoozeItem(String uid, PantryItem item, DateTime until) => _user(uid)
-      .collection('snoozes')
-      .doc(item.id)
-      .set({'until': Timestamp.fromDate(until), 'householdId': item.householdId});
+  Future<void> snoozeItem(String uid, PantryItem item, DateTime until) => _local(
+    _user(uid)
+        .collection('snoozes')
+        .doc(item.id)
+        .set({'until': Timestamp.fromDate(until), 'householdId': item.householdId}),
+  );
 
   CollectionReference<Map<String, dynamic>> _shopping(String hid) => _households.doc(hid).collection('shoppingList');
   CollectionReference<Map<String, dynamic>> _stock(String hid) => _households.doc(hid).collection('stockRules');
@@ -368,24 +421,22 @@ class FirestoreRepository implements GlebaRepository {
   static String _ruleId(String productKey) => productKey.replaceAll('/', '_');
 
   @override
-  Stream<List<ShoppingEntry>> watchShoppingList(String householdId) => _shopping(householdId)
-      .snapshots()
-      .map((s) => s.docs.map((d) => ShoppingEntry.fromMap(d.id, d.data())).toList());
+  Stream<List<ShoppingEntry>> watchShoppingList(String householdId) =>
+      _shopping(householdId).snapshots().map((s) => s.docs.map((d) => ShoppingEntry.fromMap(d.id, d.data())).toList());
 
   @override
-  Future<void> addShopping(String householdId, ShoppingEntry entry, GlebaUser by) => _shopping(householdId).add({
-        ...entry.toMap(),
-        'byName': by.shortName,
-        'by': by.uid,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+  Future<void> addShopping(String householdId, ShoppingEntry entry, GlebaUser by) => _local(
+    _shopping(householdId)
+        .add({...entry.toMap(), 'byName': by.shortName, 'by': by.uid, 'createdAt': FieldValue.serverTimestamp()}),
+  );
 
   @override
   Future<void> setShoppingDone(String householdId, String entryId, bool done) =>
-      _shopping(householdId).doc(entryId).update({'done': done});
+      _local(_shopping(householdId).doc(entryId).update({'done': done}));
 
   @override
-  Future<void> deleteShopping(String householdId, String entryId) => _shopping(householdId).doc(entryId).delete();
+  Future<void> deleteShopping(String householdId, String entryId) =>
+      _local(_shopping(householdId).doc(entryId).delete());
 
   @override
   Future<void> clearBought(String householdId) async {
@@ -394,7 +445,7 @@ class FirestoreRepository implements GlebaRepository {
     for (final d in done.docs) {
       batch.delete(d.reference);
     }
-    await batch.commit();
+    await _local(batch.commit());
   }
 
   @override
@@ -403,9 +454,9 @@ class FirestoreRepository implements GlebaRepository {
 
   @override
   Future<void> saveStockRule(String householdId, StockRule rule) =>
-      _stock(householdId).doc(_ruleId(rule.productKey)).set(rule.toMap());
+      _local(_stock(householdId).doc(_ruleId(rule.productKey)).set(rule.toMap()));
 
   @override
   Future<void> deleteStockRule(String householdId, String productKey) =>
-      _stock(householdId).doc(_ruleId(productKey)).delete();
+      _local(_stock(householdId).doc(_ruleId(productKey)).delete());
 }

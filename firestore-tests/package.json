@@ -1,0 +1,14 @@
+{
+  "name": "gleba-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Tests for firestore.rules against the Firestore emulator",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-gleba \"node --test rules.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "firebase": "^12.0.0",
+    "firebase-tools": "^14.0.0"
+  }
+}

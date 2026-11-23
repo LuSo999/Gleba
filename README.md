@@ -65,7 +65,8 @@ firestore.rules   bezpečnostní pravidla
 Upozornění posílá server (`functions/`, Cloud Functions v regionu `europe-west3`): každých 15 minut projde položky, použije pravidla každého uživatele a pošle push do jeho telefonů (FCM). Telefon nic neplánuje, jen zobrazí zprávu s tlačítky Snězeno / Vyhozeno / Zítra.
 
 ```bash
-cd functions && npm ci && npm test   # testy plánovače (časová pásma, tichý režim, odložení…)
+cd functions && npm ci && npm test          # testy plánovače (časová pásma, tichý režim, odložení…)
+cd firestore-tests && npm ci && npm test    # testy bezpečnostních pravidel v emulátoru (potřebuje Javu)
 ```
 
 ### Nasazení serveru

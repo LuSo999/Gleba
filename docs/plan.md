@@ -8,7 +8,7 @@
 - [x] Automatické nasazení webu na Firebase Hosting (https://gleba-e9a60.web.app)
 - [x] Rozložení pro velkou obrazovku: lednice + „Spotřebuj nejdřív“ + nákupní seznam vedle sebe, ostatní obrazovky vystředěné
 - [x] Firestore pravidla
-- [ ] Testy pravidel v emulátoru
+- [x] Testy pravidel v emulátoru (firestore-tests/, běží v CI)
 
 ## Fáze 1: MVP
 - [x] Přihlášení (Google, e-mail/heslo), profil
@@ -36,6 +36,10 @@
 - [x] Inventurní režim: karty (je tam / snězeno / část / vyhozeno), filtr podle místa a „po datu“, zpět, týdenní připomínka, upozornění na dlouho prošlé věci na hlavní obrazovce
 - [x] Widget na plochu: 5 věcí, které projdou nejdřív (sám se přepočítává o půlnoci), tlačítko + pro skenování
 - [ ] ~~Web push~~ (nechceme – upozornění jen do telefonu)
+
+## Spolehlivost
+- [x] Ukládání bez signálu: zápisy se uloží v telefonu hned a odešlou se po připojení (aplikace i widget)
+- [x] Automatické testy bezpečnostních pravidel
 
 ## Fáze 3: Volitelné
 - [ ] Health Connect / Samsung Health
