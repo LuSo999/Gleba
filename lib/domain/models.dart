@@ -56,6 +56,7 @@ class PantryItem {
     this.addedBy,
     this.addedAt,
     this.householdId,
+    this.checkedAt,
   });
 
   final String id;
@@ -86,6 +87,9 @@ class PantryItem {
   final String? addedBy;
   final DateTime? addedAt;
 
+  /// Last time someone confirmed in the inventory that it's still there.
+  final DateTime? checkedAt;
+
   PantryItem withHousehold(String hid) => PantryItem.fromMap(id, toMap(), householdId: hid);
 
   bool get isOpened => openedAt != null;
@@ -102,6 +106,7 @@ class PantryItem {
     DateTime? openedAt,
     DateTime? frozenAt,
     ItemStatus? status,
+    DateTime? checkedAt,
   }) =>
       PantryItem(
         id: id,
@@ -125,6 +130,7 @@ class PantryItem {
         addedBy: addedBy,
         addedAt: addedAt,
         householdId: householdId,
+        checkedAt: checkedAt ?? this.checkedAt,
       );
 
   Map<String, Object?> toMap() => {
@@ -147,6 +153,7 @@ class PantryItem {
         'status': status.name,
         'addedBy': addedBy,
         'addedAt': addedAt,
+        'checkedAt': checkedAt,
       };
 
   factory PantryItem.fromMap(String id, Map<String, Object?> m, {String? householdId}) => PantryItem(
@@ -173,6 +180,7 @@ class PantryItem {
         status: _enumByName(ItemStatus.values, m['status'], ItemStatus.active),
         addedBy: m['addedBy'] as String?,
         addedAt: _date(m['addedAt']),
+        checkedAt: _date(m['checkedAt']),
       );
 }
 

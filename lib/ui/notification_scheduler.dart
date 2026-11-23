@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../app.dart' show routerProvider;
 import '../app_state.dart';
 import '../domain/models.dart';
 import '../services/notification_service.dart';
@@ -38,6 +39,10 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
   }
 
   Future<void> _handle(NotificationAction a) async {
+    if (a.kind == 'inventory') {
+      ref.read(routerProvider).push('/inventory');
+      return;
+    }
     final hid = a.householdId, id = a.itemId;
     if (hid == null || id == null || a.action == 'open') return;
     // The user may not be signed in yet when the app was cold-started.

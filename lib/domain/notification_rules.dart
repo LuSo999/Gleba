@@ -86,6 +86,9 @@ class NotificationPrefs {
     this.quietEnabled = false,
     this.quietFrom = 22 * 60,
     this.quietTo = 7 * 60,
+    this.inventoryReminder = false,
+    this.inventoryWeekday = DateTime.sunday,
+    this.inventoryMinutes = 19 * 60,
   });
 
   final bool itemNotifications;
@@ -104,6 +107,13 @@ class NotificationPrefs {
   final int quietFrom;
   final int quietTo;
 
+  /// Weekly "time for a quick fridge check" reminder.
+  final bool inventoryReminder;
+
+  /// 1 = Monday … 7 = Sunday.
+  final int inventoryWeekday;
+  final int inventoryMinutes;
+
   NotificationPrefs copyWith({
     bool? itemNotifications,
     bool? morningDigest,
@@ -114,6 +124,9 @@ class NotificationPrefs {
     bool? quietEnabled,
     int? quietFrom,
     int? quietTo,
+    bool? inventoryReminder,
+    int? inventoryWeekday,
+    int? inventoryMinutes,
   }) =>
       NotificationPrefs(
         itemNotifications: itemNotifications ?? this.itemNotifications,
@@ -125,6 +138,9 @@ class NotificationPrefs {
         quietEnabled: quietEnabled ?? this.quietEnabled,
         quietFrom: quietFrom ?? this.quietFrom,
         quietTo: quietTo ?? this.quietTo,
+        inventoryReminder: inventoryReminder ?? this.inventoryReminder,
+        inventoryWeekday: inventoryWeekday ?? this.inventoryWeekday,
+        inventoryMinutes: inventoryMinutes ?? this.inventoryMinutes,
       );
 
   /// Field names are shared with the server (functions/src/planner.ts).
@@ -138,6 +154,9 @@ class NotificationPrefs {
         'quietEnabled': quietEnabled,
         'quietFrom': quietFrom,
         'quietTo': quietTo,
+        'inventoryReminder': inventoryReminder,
+        'inventoryWeekday': inventoryWeekday,
+        'inventoryMinutes': inventoryMinutes,
       };
 
   factory NotificationPrefs.fromMap(Map<String, Object?>? m) {
@@ -154,6 +173,9 @@ class NotificationPrefs {
       quietEnabled: b('quietEnabled', false),
       quietFrom: i('quietFrom', 22 * 60),
       quietTo: i('quietTo', 7 * 60),
+      inventoryReminder: b('inventoryReminder', false),
+      inventoryWeekday: i('inventoryWeekday', DateTime.sunday),
+      inventoryMinutes: i('inventoryMinutes', 19 * 60),
     );
   }
 }

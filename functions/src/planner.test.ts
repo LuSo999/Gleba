@@ -81,3 +81,13 @@ test('texts', () => {
   assert.equal(activityText('cs', [{ byName: 'Jana', type: 'added' }, { byName: 'Jana', type: 'added' }]).body,
     'Jana: přidáno 2');
 });
+
+test('weekly inventory reminder on the chosen day and time, once', () => {
+  const prefs = { ...defaultPrefs, itemNotifications: false, inventoryReminder: true, inventoryWeekday: 7, inventoryMinutes: 19 * 60 };
+  const items = [item('a', '2026-12-20')];
+  assert.equal(run(at('2026-11-29', 18, 59), items, { prefs }).length, 0); // Sunday, too early
+  const due = run(at('2026-11-29', 19, 5), items, { prefs });
+  assert.deepEqual(due.map((d) => d.key), ['inventory:2026-11-29']);
+  assert.equal(run(at('2026-11-30', 19, 5), items, { prefs }).length, 0); // Monday
+  assert.match(texts('cs', due[0]).title, /inventuru/);
+});

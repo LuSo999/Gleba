@@ -348,5 +348,57 @@
     }
   },
   "tipForgotten": "Většina vyhozených věcí ležela v lednici dlouho po datu. Pomůže ranní souhrn nebo pravidelná inventura.",
-  "tipSetEarlier": "Upozorňovat dřív"
+  "tipSetEarlier": "Upozorňovat dřív",
+  "inventoryTitle": "Inventura",
+  "invAll": "Vše",
+  "invExpired": "Po datu",
+  "invStillThere": "Je tam",
+  "invEaten": "Snězeno",
+  "invPart": "Část",
+  "invThrown": "Vyhozeno",
+  "invHint": "Doprava = je tam · doleva = snězeno · nahoru = zbyla část",
+  "invProgress": "{done} z {total}",
+  "@invProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "invDone": "Hotovo! 🎉",
+  "invSummary": "Zkontrolováno {checked} · snězeno {eaten} · vyhozeno {thrown} · upraveno {part}",
+  "@invSummary": {
+    "placeholders": {
+      "checked": {
+        "type": "int"
+      },
+      "eaten": {
+        "type": "int"
+      },
+      "thrown": {
+        "type": "int"
+      },
+      "part": {
+        "type": "int"
+      }
+    }
+  },
+  "invNothing": "Tady není co kontrolovat.",
+  "invHowMuchLeft": "Kolik zbývá?",
+  "invBack": "Zpět na lednici",
+  "invLongExpired": "{count, plural, =1{1 věc je dlouho po datu.} few{{count} věci jsou dlouho po datu.} other{{count} věcí je dlouho po datu.}} Je to ještě v lednici?",
+  "@invLongExpired": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "invCheck": "Zkontrolovat",
+  "inventoryReminder": "Připomínka inventury",
+  "inventoryReminderText": "Jednou týdně rychle projet lednici",
+  "weekday": "Den"
 }

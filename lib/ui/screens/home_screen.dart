@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
+import '../../domain/freshness.dart';
 import '../fridge/fridge_view.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -27,6 +28,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final active = ref.watch(activeHouseholdProvider);
     final items = ref.watch(itemsProvider).value ?? const [];
     final isDemo = ref.watch(isDemoProvider);
+    final now = DateTime.now();
+    final longExpired = items.where((i) => daysLeft(i.expiryDate, now) < -3).length;
     final shoppingCount = (ref.watch(shoppingListProvider).value ?? const []).where((e) => !e.done).length;
 
     if (households.isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -70,11 +73,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onSelected: (v) => switch (v) {
               'history' => context.push('/history'),
               'stats' => context.push('/stats'),
+              'inventory' => context.push('/inventory'),
               'invite' => showInviteDialog(context, ref, active),
               _ => context.push('/settings'),
             },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'history', child: ListTile(leading: const Icon(Icons.history), title: Text(l.historyTitle))),
+              PopupMenuItem(value: 'inventory', child: ListTile(leading: const Text('📋', style: TextStyle(fontSize: 20)), title: Text(l.inventoryTitle))),
               PopupMenuItem(value: 'stats', child: ListTile(leading: const Icon(Icons.insights), title: Text(l.statsTitle))),
               PopupMenuItem(value: 'invite', child: ListTile(leading: const Icon(Icons.person_add_alt), title: Text(l.invite))),
               PopupMenuItem(value: 'settings', child: ListTile(leading: const Icon(Icons.settings_outlined), title: Text(l.settings))),
@@ -105,6 +110,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               color: Theme.of(context).colorScheme.tertiaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Text(l.demoBanner, style: Theme.of(context).textTheme.labelSmall),
+            ),
+          if (longExpired > 0)
+            Material(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+                child: Row(children: [
+                  const Text('⏰ '),
+                  Expanded(child: Text(l.invLongExpired(longExpired), style: Theme.of(context).textTheme.bodySmall)),
+                  TextButton(onPressed: () => context.push('/inventory?filter=expired'), child: Text(l.invCheck)),
+                ]),
+              ),
             ),
           Expanded(
             child: Material(

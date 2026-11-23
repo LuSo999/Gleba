@@ -32,7 +32,7 @@
 - [x] Účtenky, recepty (+ „zkopírovat zadání“), AI fallback na datum, neznámý produkt z fotky
 - [x] Nákupní seznam (sdílený), přidání z detailu produktu, hlídání minimálních zásob s automatickým doplněním
 - [x] Statistiky: snězeno včas / vyhozeno (ks, Kč), vývoj po týdnech/měsících, nejčastěji vyhazované kategorie a produkty, kdo co dělá, tipy
-- [ ] Inventurní režim
+- [x] Inventurní režim: karty (je tam / snězeno / část / vyhozeno), filtr podle místa a „po datu“, zpět, týdenní připomínka, upozornění na dlouho prošlé věci na hlavní obrazovce
 - [ ] Widget
 - [ ] ~~Web push~~ (nechceme – upozornění jen do telefonu)
 

@@ -8,6 +8,7 @@ import 'ui/notification_scheduler.dart';
 import 'ui/screens/add_item_screen.dart';
 import 'ui/screens/ai_settings_screen.dart';
 import 'ui/screens/history_screen.dart';
+import 'ui/screens/inventory_screen.dart';
 import 'ui/screens/receipt_screen.dart';
 import 'ui/screens/recipes_screen.dart';
 import 'ui/screens/home_screen.dart';
@@ -48,6 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           mode: AddMode.values.where((m) => m.name == s.uri.queryParameters['mode']).firstOrNull ?? AddMode.manual,
         ),
       ),
+      GoRoute(path: '/inventory', builder: (_, s) => InventoryScreen(filter: s.uri.queryParameters['filter'])),
       GoRoute(path: '/stats', builder: (_, _) => const StatsScreen()),
       GoRoute(path: '/shopping', builder: (_, _) => const ShoppingScreen()),
       GoRoute(path: '/receipt', builder: (_, _) => const ReceiptScreen()),

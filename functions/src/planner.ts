@@ -43,16 +43,21 @@ export interface Prefs {
   /** Minutes since midnight. */
   quietFrom: number;
   quietTo: number;
+  /** Weekly inventory reminder; weekday 1 = Monday … 7 = Sunday. */
+  inventoryReminder: boolean;
+  inventoryWeekday: number;
+  inventoryMinutes: number;
 }
 
 export const defaultPrefs: Prefs = {
   itemNotifications: true, morningDigest: false, digestHour: 7, digestMinute: 30,
   repeatExpired: true, othersActivity: false, quietEnabled: false, quietFrom: 22 * 60, quietTo: 7 * 60,
+  inventoryReminder: false, inventoryWeekday: 7, inventoryMinutes: 19 * 60,
 };
 
 export const builtInRule: Rule = { scope: 'defaults', enabled: true, daysBefore: 2, hour: 9, minute: 0 };
 
-export type Kind = 'soon' | 'expired' | 'snooze' | 'digest';
+export type Kind = 'soon' | 'expired' | 'snooze' | 'digest' | 'inventory';
 
 export interface Due {
   /** Idempotency key – each key is sent at most once. */
@@ -144,5 +149,14 @@ export function plan({ now, tz, items, rules, prefs, snoozes, alreadySent }: Pla
       add({ key: `digest:${today}`, kind: 'digest', items: list });
     }
   }
+  if (prefs.inventoryReminder && weekdayOf(today) === prefs.inventoryWeekday && passed(today, prefs.inventoryMinutes)) {
+    add({ key: `inventory:${today}`, kind: 'inventory', items });
+  }
   return due;
+}
+
+/** ISO weekday of a local date: 1 = Monday … 7 = Sunday. */
+export function weekdayOf(day: string): number {
+  const d = new Date(day + 'T12:00:00Z').getUTCDay();
+  return d === 0 ? 7 : d;
 }

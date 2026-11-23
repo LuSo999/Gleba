@@ -80,6 +80,8 @@ void main() {
     expect(find.text('Čas'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.text('Přidat výjimku pro kategorii'), 200);
+    await tester.ensureVisible(find.text('Přidat výjimku pro kategorii'));
+    await settle(tester);
     await tester.tap(find.text('Přidat výjimku pro kategorii'));
     await settle(tester);
     await tester.tap(find.textContaining('Mléko').first);
@@ -111,6 +113,7 @@ void main() {
     await settle(tester);
     // Tap the left part of the row – the floating "Add" button covers the right.
     Future<void> openButter() async {
+      await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).first);
       final tile = find.ancestor(of: find.text('Máslo'), matching: find.byType(ListTile));
       await tester.ensureVisible(tile);
       await settle(tester);
@@ -170,6 +173,7 @@ void main() {
     await settle(tester);
 
     Future<void> openButter() async {
+      await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).first);
       final tile = find.ancestor(of: find.text('Máslo'), matching: find.byType(ListTile));
       await tester.ensureVisible(tile);
       await settle(tester);
@@ -228,5 +232,49 @@ void main() {
     await tester.scrollUntilVisible(find.text('Co se nejvíc vyhazuje'), 200,
         scrollable: find.ancestor(of: find.text('Snězeno včas'), matching: find.byType(Scrollable)).first);
     expect(find.text('Co se nejvíc vyhazuje'), findsOneWidget);
+  });
+
+  testWidgets('inventory: swipe right keeps, button eats, undo restores', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    final auth = DemoAuthService();
+    final repo = DemoRepository();
+    await auth.signInWithGoogle();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        isDemoProvider.overrideWithValue(true),
+        authServiceProvider.overrideWithValue(auth),
+        repositoryProvider.overrideWithValue(repo),
+      ],
+      child: const GlebaApp(),
+    ));
+    await settle(tester);
+    // The demo kečup is 3 days past its date → no banner yet (needs > 3).
+    await tester.tap(find.byTooltip('Další'));
+    await settle(tester);
+    await tester.tap(find.text('Inventura'));
+    await settle(tester);
+    expect(find.text('1 z 13'), findsOneWidget);
+
+    // First card = most urgent: the expired ham. Swipe right = still there.
+    expect(find.text('Šunka nejvyšší jakosti'), findsOneWidget);
+    await tester.drag(find.text('Šunka nejvyšší jakosti'), const Offset(300, 0));
+    await settle(tester);
+    expect(find.text('2 z 13'), findsOneWidget);
+    final ham = (await repo.watchActiveItems('home').first).firstWhere((i) => i.name.startsWith('Šunka'));
+    expect(ham.checkedAt, isNotNull);
+
+    // Eat the next one with the button, then undo.
+    await tester.tap(find.text('Snězeno').last);
+    await settle(tester);
+    expect(find.text('3 z 13'), findsOneWidget);
+    expect((await repo.watchActiveItems('home').first).length, 12);
+    await tester.tap(find.byIcon(Icons.undo));
+    await settle(tester);
+    expect(find.text('2 z 13'), findsOneWidget);
+    expect((await repo.watchActiveItems('home').first).length, 13);
   });
 }

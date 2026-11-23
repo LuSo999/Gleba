@@ -33,6 +33,12 @@ export function langOf(locale?: string | null): Lang {
 }
 
 export function texts(lang: Lang, d: Due): { title: string; body: string } {
+  if (d.kind === 'inventory') {
+    const n = d.items.length;
+    return lang === 'cs'
+      ? { title: '📋 Čas na rychlou inventuru', body: `Projeďte ${n} ${csPlural(n, 'věc', 'věci', 'věcí')} v lednici – zabere to minutku.` }
+      : { title: '📋 Time for a quick fridge check', body: `Swipe through ${n} ${n === 1 ? 'item' : 'items'} – it takes a minute.` };
+  }
   if (d.kind === 'digest') {
     const n = d.items.length;
     const names = d.items.slice(0, 5).map((i) => i.name).join(', ') + (n > 5 ? '…' : '');

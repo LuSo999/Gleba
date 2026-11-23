@@ -110,6 +110,36 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 ],
               ),
             ),
+          SwitchListTile(
+            secondary: const Text('📋', style: TextStyle(fontSize: 22)),
+            title: Text(l.inventoryReminder),
+            subtitle: Text(l.inventoryReminderText),
+            value: prefs.inventoryReminder,
+            onChanged: (v) => savePrefs(prefs.copyWith(inventoryReminder: v)),
+          ),
+          if (prefs.inventoryReminder)
+            Padding(
+              padding: const EdgeInsets.only(left: 72, right: 16),
+              child: Wrap(spacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                DropdownButton<int>(
+                  value: prefs.inventoryWeekday,
+                  onChanged: (v) => savePrefs(prefs.copyWith(inventoryWeekday: v)),
+                  items: [
+                    for (var d = 1; d <= 7; d++)
+                      DropdownMenuItem(
+                        value: d,
+                        // Material's narrow weekday names start on Sunday (index 0).
+                        child: Text(MaterialLocalizations.of(context).narrowWeekdays[d % 7]),
+                      ),
+                  ],
+                ),
+                _TimeButton(
+                  hour: prefs.inventoryMinutes ~/ 60,
+                  minute: prefs.inventoryMinutes % 60,
+                  onChanged: (t) => savePrefs(prefs.copyWith(inventoryMinutes: t.hour * 60 + t.minute)),
+                ),
+              ]),
+            ),
           _Header(l.defaultsSection),
           for (final t in DateType.values)
             _RuleTile(

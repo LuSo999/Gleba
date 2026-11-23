@@ -98,7 +98,7 @@ async function processUser(uid: string, now: Date) {
 
   for (const [i, d] of due.entries()) {
     const t = texts(lang, d);
-    const single = d.kind !== 'digest';
+    const single = d.kind === 'soon' || d.kind === 'expired' || d.kind === 'snooze';
     await sendToUser(uid, devices, {
       kind: d.kind,
       title: t.title,

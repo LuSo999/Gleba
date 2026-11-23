@@ -5,12 +5,15 @@ import '../domain/notification_rules.dart' show stableId;
 
 /// What the user did with a notification.
 class NotificationAction {
-  const NotificationAction({required this.action, this.householdId, this.itemId});
+  const NotificationAction({required this.action, this.householdId, this.itemId, this.kind});
 
   /// 'eaten', 'discarded', 'snooze' or 'open'.
   final String action;
   final String? householdId;
   final String? itemId;
+
+  /// Message kind for notifications without an item ('inventory', 'digest'…).
+  final String? kind;
 }
 
 /// Shows the push notifications sent by the server (functions/src/index.ts)
@@ -57,6 +60,7 @@ class NotificationService {
       action: r.actionId ?? 'open',
       householdId: isItem ? parts[1] : null,
       itemId: isItem ? parts[2] : null,
+      kind: isItem ? null : r.payload,
     );
   }
 
