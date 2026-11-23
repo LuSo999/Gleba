@@ -61,36 +61,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(isDemo ? 84 : 56),
-          child: Column(
-            children: [
-              if (isDemo)
-                Container(
-                  width: double.infinity,
-                  color: Theme.of(context).colorScheme.tertiaryContainer,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  child: Text(l.demoBanner, style: Theme.of(context).textTheme.labelSmall),
-                ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: SegmentedButton<bool>(
-                  segments: [
-                    ButtonSegment(value: false, label: Text(l.viewFridge), icon: const Text('🧊')),
-                    ButtonSegment(value: true, label: Text(l.viewList), icon: const Icon(Icons.schedule)),
-                  ],
-                  selected: {_list},
-                  onSelectionChanged: (s) => setState(() => _list = s.first),
-                ),
-              ),
-            ],
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(value: false, label: Text(l.viewFridge), icon: const Text('🧊')),
+                ButtonSegment(value: true, label: Text(l.viewList), icon: const Icon(Icons.schedule)),
+              ],
+              selected: {_list},
+              onSelectionChanged: (s) => setState(() => _list = s.first),
+            ),
           ),
         ),
       ),
-      body: AnimatedSwitcher(
-        duration: ref.watch(settingsProvider).anim(const Duration(milliseconds: 250)),
-        child: _list
-            ? UrgentList(key: const ValueKey('list'), items: items)
-            : FridgeView(key: const ValueKey('fridge'), items: items, onItemTap: (i) => showItemSheet(context, i)),
+      body: Column(
+        children: [
+          // Kept out of the AppBar so long text can never squash the toolbar.
+          if (isDemo)
+            Container(
+              width: double.infinity,
+              color: Theme.of(context).colorScheme.tertiaryContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Text(l.demoBanner, style: Theme.of(context).textTheme.labelSmall),
+            ),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: ref.watch(settingsProvider).anim(const Duration(milliseconds: 250)),
+              child: _list
+                  ? UrgentList(key: const ValueKey('list'), items: items)
+                  : FridgeView(key: const ValueKey('fridge'), items: items, onItemTap: (i) => showItemSheet(context, i)),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddMenu(context),

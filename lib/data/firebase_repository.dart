@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../domain/models.dart';
+import '../domain/notification_rules.dart';
 import 'repository.dart';
 
 class FirebaseAuthService implements AuthService {
@@ -212,4 +213,37 @@ class FirestoreRepository implements GlebaRepository {
         'lastPrice': item.price,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+  @override
+  Future<PantryItem?> getItem(String householdId, String itemId) async {
+    final d = await _items(householdId).doc(itemId).get();
+    return d.exists ? PantryItem.fromMap(d.id, d.data()!) : null;
+  }
+
+  DocumentReference<Map<String, dynamic>> _user(String uid) => _db.collection('users').doc(uid);
+
+  @override
+  Stream<List<NotificationRule>> watchNotificationRules(String uid) => _user(uid)
+      .collection('notificationRules')
+      .snapshots()
+      .map((s) => s.docs.map((d) => NotificationRule.fromMap(d.data())).toList());
+
+  @override
+  Future<void> saveNotificationRule(String uid, NotificationRule rule) =>
+      _user(uid).collection('notificationRules').doc(rule.key).set(rule.toMap());
+
+  @override
+  Future<void> deleteNotificationRule(String uid, NotificationRule rule) =>
+      _user(uid).collection('notificationRules').doc(rule.key).delete();
+
+  @override
+  Stream<NotificationPrefs> watchNotificationPrefs(String uid) => _user(uid)
+      .collection('preferences')
+      .doc('notifications')
+      .snapshots()
+      .map((d) => NotificationPrefs.fromMap(d.data()));
+
+  @override
+  Future<void> saveNotificationPrefs(String uid, NotificationPrefs prefs) =>
+      _user(uid).collection('preferences').doc('notifications').set(prefs.toMap());
 }

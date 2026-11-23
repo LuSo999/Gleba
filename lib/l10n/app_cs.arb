@@ -143,5 +143,42 @@
   "catCanned": "Konzervy",
   "catDry": "Trvanlivé potraviny",
   "catSweets": "Sladkosti a snacky",
-  "catOther": "Ostatní"
+  "catOther": "Ostatní",
+  "notificationsAndroidOnly": "Upozornění zatím fungují v Android aplikaci. Na webu je přidáme později.",
+  "itemNotifications": "Upozornění na jednotlivé produkty",
+  "morningDigest": "Ranní souhrn",
+  "morningDigestText": "Každé ráno přehled toho, co brzy projde",
+  "time": "Čas",
+  "daysBefore": "{count, plural, =0{v den data} =1{1 den předem} few{{count} dny předem} other{{count} dní předem}}",
+  "@daysBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultsSection": "Výchozí nastavení",
+  "categoryExceptions": "Výjimky pro kategorie",
+  "productExceptions": "Výjimky pro produkty",
+  "addCategoryException": "Přidat výjimku pro kategorii",
+  "off": "Vypnuto",
+  "useDefault": "Podle výchozího nastavení",
+  "notificationForProduct": "Upozornění pro tento produkt",
+  "delete": "Smazat",
+  "digestTitle": "Co dnes v lednici spěchá",
+  "digestBody": "{count, plural, =1{1 věc brzy projde} few{{count} věci brzy projdou} other{{count} věcí brzy projde}}: {names}",
+  "@digestBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {}
+    }
+  },
+  "snooze": "Odložit na zítra",
+  "channelName": "Blížící se datum spotřeby",
+  "photoDate": "Vyfotit datum",
+  "dateFromPhoto": "Přečteno z fotky – zkontrolujte",
+  "dateNotFound": "Na fotce jsem datum nenašel. Zkuste to blíž, nebo ho zadejte ručně.",
+  "chooseDate": "Které datum je to správné?"
 }

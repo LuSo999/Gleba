@@ -3,15 +3,17 @@ import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../app_state.dart';
+import '../../domain/expiry_date_parser.dart';
 import '../../domain/gs1_parser.dart';
 import '../../domain/models.dart';
 import '../../domain/shelf_life.dart';
+import '../../services/ocr_service.dart';
 import '../labels.dart';
 import '../widgets/burst.dart';
 
 enum AddMode { scan, manual, leftover }
 
-enum _DateOrigin { suggested, code, user }
+enum _DateOrigin { suggested, code, photo, user }
 
 class AddItemScreen extends ConsumerStatefulWidget {
   const AddItemScreen({super.key, required this.mode});
@@ -125,6 +127,49 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
         _dateOrigin = _DateOrigin.user;
       });
     }
+  }
+
+  Future<void> _photoDate() async {
+    final l = context.l;
+    final messenger = ScaffoldMessenger.of(context);
+    final String? text;
+    try {
+      text = await OcrService.captureText();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      return;
+    }
+    if (text == null || !mounted) return;
+    final candidates = findExpiryCandidates(text).where((c) => c.score > 0).take(4).toList();
+    if (candidates.isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(l.dateNotFound)));
+      return;
+    }
+    var chosen = candidates.first;
+    // Ask only when the top two candidates are close calls.
+    if (candidates.length > 1 && candidates[1].score >= candidates.first.score - 10) {
+      final picked = await showDialog<ExpiryCandidate>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: Text(l.chooseDate),
+          children: [
+            for (final c in candidates)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, c),
+                child: Text('${formatDate(ctx, c.date)}   ·   „${c.matched}“'
+                    '${c.dateType == null ? '' : '   (${dateTypeLabel(l, c.dateType!)})'}'),
+              ),
+          ],
+        ),
+      );
+      if (picked == null) return;
+      chosen = picked;
+    }
+    setState(() {
+      _expiry = chosen.date;
+      if (chosen.dateType != null) _dateType = chosen.dateType!;
+      _dateOrigin = _DateOrigin.photo;
+    });
   }
 
   Future<void> _save({bool next = false}) async {
@@ -313,12 +358,21 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                     title: Text('${formatDate(context, _expiry)} · ${relativeExpiry(l, _expiry, DateTime.now())}'),
                     subtitle: switch (_dateOrigin) {
                       _DateOrigin.code => Text(l.dateFromCode),
+                      _DateOrigin.photo => Text(l.dateFromPhoto),
                       _DateOrigin.suggested => Text(l.dateSuggested),
                       _DateOrigin.user => null,
                     },
                     trailing: const Icon(Icons.edit_calendar),
                     onTap: _pickDate,
                   ),
+                  if (OcrService.supported) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _photoDate,
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: Text(l.photoDate),
+                    ),
+                  ],
                   if (_product != null && (_product!.allergens.isNotEmpty || _product!.nutriScore != null)) ...[
                     const SizedBox(height: 12),
                     Wrap(spacing: 6, runSpacing: 6, children: [

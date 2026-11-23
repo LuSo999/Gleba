@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app_state.dart';
 import '../../domain/freshness.dart';
 import '../../domain/models.dart';
+import '../../domain/notification_rules.dart';
 import '../../domain/shelf_life.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -158,12 +159,70 @@ class _ItemSheet extends ConsumerWidget {
                   icon: const Icon(Icons.edit_calendar),
                   label: Text(l.expiryDate),
                 ),
+                TextButton.icon(
+                  onPressed: () => _editProductRule(context, ref, item),
+                  icon: const Icon(Icons.notifications_outlined),
+                  label: Text(l.notifications),
+                ),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// Per-product exception, keyed by EAN (so it applies to future purchases
+  /// too) or by the item id for products without a barcode.
+  static Future<void> _editProductRule(BuildContext context, WidgetRef ref, PantryItem item) async {
+    final l = context.l;
+    final user = ref.read(userProvider).value;
+    if (user == null) return;
+    final repo = ref.read(repositoryProvider);
+    final target = item.ean ?? item.id;
+    final current = (ref.read(notificationRulesProvider).value ?? const [])
+        .where((r) => r.scope == RuleScope.product && r.targetId == target)
+        .firstOrNull;
+    // -1 = use default, -2 = off, n >= 0 = n days before
+    final choice = await showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l.notificationForProduct),
+        children: [
+          for (final (value, label) in [
+            (-1, l.useDefault),
+            (-2, l.off),
+            for (final d in [0, 1, 2, 3, 5, 7]) (d, l.daysBefore(d)),
+          ])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, value),
+              child: Row(children: [
+                Icon(
+                  (value == -1 && current == null) ||
+                          (value == -2 && current?.enabled == false) ||
+                          (current?.enabled == true && current?.daysBefore == value)
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(label),
+              ]),
+            ),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    final rule = NotificationRule(
+      scope: RuleScope.product,
+      targetId: target,
+      label: item.name,
+      enabled: choice != -2,
+      daysBefore: choice >= 0 ? choice : (current?.daysBefore ?? 2),
+      hour: current?.hour ?? 9,
+      minute: current?.minute ?? 0,
+    );
+    choice == -1 ? await repo.deleteNotificationRule(user.uid, rule) : await repo.saveNotificationRule(user.uid, rule);
   }
 
   static String _qty(PantryItem i) =>

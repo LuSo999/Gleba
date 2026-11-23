@@ -17,9 +17,13 @@ class NotificationRule {
     this.daysBefore = 2,
     this.hour = 9,
     this.minute = 0,
+    this.label,
   });
 
   final RuleScope scope;
+
+  /// Human-readable name of the target (product name) for the settings list.
+  final String? label;
 
   /// Category id for [RuleScope.category], item id or EAN for [RuleScope.product].
   final String? targetId;
@@ -33,6 +37,20 @@ class NotificationRule {
 
   static const builtInDefault = NotificationRule(scope: RuleScope.defaults);
 
+  /// Stable document id: one rule per scope + target + date type.
+  String get key => [scope.name, targetId ?? '-', dateType?.name ?? 'any'].join('_');
+
+  NotificationRule copyWith({bool? enabled, int? daysBefore, int? hour, int? minute}) => NotificationRule(
+        scope: scope,
+        targetId: targetId,
+        dateType: dateType,
+        label: label,
+        enabled: enabled ?? this.enabled,
+        daysBefore: daysBefore ?? this.daysBefore,
+        hour: hour ?? this.hour,
+        minute: minute ?? this.minute,
+      );
+
   Map<String, Object?> toMap() => {
         'scope': scope.name,
         'targetId': targetId,
@@ -41,6 +59,7 @@ class NotificationRule {
         'daysBefore': daysBefore,
         'hour': hour,
         'minute': minute,
+        'label': label,
       };
 
   factory NotificationRule.fromMap(Map<String, Object?> m) => NotificationRule(
@@ -51,6 +70,7 @@ class NotificationRule {
         daysBefore: (m['daysBefore'] as num?)?.toInt() ?? 2,
         hour: (m['hour'] as num?)?.toInt() ?? 9,
         minute: (m['minute'] as num?)?.toInt() ?? 0,
+        label: m['label'] as String?,
       );
 }
 
@@ -66,6 +86,30 @@ class NotificationPrefs {
   final bool morningDigest;
   final int digestHour;
   final int digestMinute;
+
+  NotificationPrefs copyWith({bool? itemNotifications, bool? morningDigest, int? digestHour, int? digestMinute}) =>
+      NotificationPrefs(
+        itemNotifications: itemNotifications ?? this.itemNotifications,
+        morningDigest: morningDigest ?? this.morningDigest,
+        digestHour: digestHour ?? this.digestHour,
+        digestMinute: digestMinute ?? this.digestMinute,
+      );
+
+  Map<String, Object?> toMap() => {
+        'itemNotifications': itemNotifications,
+        'morningDigest': morningDigest,
+        'digestHour': digestHour,
+        'digestMinute': digestMinute,
+      };
+
+  factory NotificationPrefs.fromMap(Map<String, Object?>? m) => m == null
+      ? const NotificationPrefs()
+      : NotificationPrefs(
+          itemNotifications: (m['itemNotifications'] as bool?) ?? true,
+          morningDigest: (m['morningDigest'] as bool?) ?? false,
+          digestHour: (m['digestHour'] as num?)?.toInt() ?? 7,
+          digestMinute: (m['digestMinute'] as num?)?.toInt() ?? 30,
+        );
 }
 
 /// Picks the rule that applies to [item]. Within a scope, a rule for the

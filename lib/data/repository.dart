@@ -1,4 +1,5 @@
 import '../domain/models.dart';
+import '../domain/notification_rules.dart';
 
 /// Signed-in user as the app sees it (independent of Firebase).
 class GlebaUser {
@@ -52,6 +53,15 @@ abstract class GlebaRepository {
   /// Product details this household already entered for [ean], if any.
   Future<ProductInfo?> householdProduct(String householdId, String ean);
   Future<void> rememberProduct(String householdId, PantryItem item);
+
+  Future<PantryItem?> getItem(String householdId, String itemId);
+
+  // ---- Per-user notification settings ----
+  Stream<List<NotificationRule>> watchNotificationRules(String uid);
+  Future<void> saveNotificationRule(String uid, NotificationRule rule);
+  Future<void> deleteNotificationRule(String uid, NotificationRule rule);
+  Stream<NotificationPrefs> watchNotificationPrefs(String uid);
+  Future<void> saveNotificationPrefs(String uid, NotificationPrefs prefs);
 }
 
 /// Invite codes: 8 chars, no look-alike characters (0/O, 1/I/L).

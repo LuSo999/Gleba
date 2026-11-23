@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,6 +8,7 @@ import 'data/open_food_facts.dart';
 import 'data/product_lookup.dart';
 import 'data/repository.dart';
 import 'domain/models.dart';
+import 'domain/notification_rules.dart';
 
 /// Overridden in main() with the Firebase or demo implementation.
 final authServiceProvider = Provider<AuthService>((ref) => throw UnimplementedError());
@@ -51,6 +54,42 @@ final itemsProvider = StreamProvider<List<PantryItem>>((ref) {
   final h = ref.watch(activeHouseholdProvider);
   if (h == null) return Stream.value(const []);
   return ref.watch(repositoryProvider).watchActiveItems(h.id);
+});
+
+/// Active items of *all* the user's households – notifications cover every
+/// household, not only the one currently shown.
+final allItemsProvider = StreamProvider<List<PantryItem>>((ref) {
+  final households = ref.watch(householdsProvider).value ?? const [];
+  if (households.isEmpty) return Stream.value(const []);
+  final repo = ref.watch(repositoryProvider);
+  final latest = <String, List<PantryItem>>{};
+  final controller = StreamController<List<PantryItem>>();
+  final subs = [
+    for (final h in households)
+      repo.watchActiveItems(h.id).listen((items) {
+        latest[h.id] = [for (final i in items) i.withHousehold(h.id)];
+        controller.add(latest.values.expand((l) => l).toList());
+      }),
+  ];
+  ref.onDispose(() {
+    for (final s in subs) {
+      s.cancel();
+    }
+    controller.close();
+  });
+  return controller.stream;
+});
+
+final notificationRulesProvider = StreamProvider<List<NotificationRule>>((ref) {
+  final user = ref.watch(userProvider).value;
+  if (user == null) return Stream.value(const []);
+  return ref.watch(repositoryProvider).watchNotificationRules(user.uid);
+});
+
+final notificationPrefsProvider = StreamProvider<NotificationPrefs>((ref) {
+  final user = ref.watch(userProvider).value;
+  if (user == null) return Stream.value(const NotificationPrefs());
+  return ref.watch(repositoryProvider).watchNotificationPrefs(user.uid);
 });
 
 class AppSettings {

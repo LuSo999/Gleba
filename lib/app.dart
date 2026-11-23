@@ -4,9 +4,11 @@ import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
 import 'l10n/app_localizations.dart';
+import 'ui/notification_scheduler.dart';
 import 'ui/screens/add_item_screen.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/households_screen.dart';
+import 'ui/screens/notification_settings_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'ui/screens/sign_in_screen.dart';
 import 'ui/theme.dart';
@@ -43,6 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/households', builder: (_, _) => const HouseholdsScreen()),
       GoRoute(path: '/join/:code', builder: (_, s) => JoinScreen(code: s.pathParameters['code']!)),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: '/settings/notifications', builder: (_, _) => const NotificationSettingsScreen()),
     ],
   );
 });
@@ -62,6 +65,12 @@ class GlebaApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
       routerConfig: ref.watch(routerProvider),
+      builder: (context, child) => NotificationScheduler(
+        child: Builder(builder: (context) {
+          navigatorContext = context;
+          return child ?? const SizedBox();
+        }),
+      ),
     );
   }
 }

@@ -55,9 +55,14 @@ class PantryItem {
     this.status = ItemStatus.active,
     this.addedBy,
     this.addedAt,
+    this.householdId,
   });
 
   final String id;
+
+  /// Which household the item belongs to. Not stored – filled in when items
+  /// from several households are combined (notifications).
+  final String? householdId;
   final String name;
   final String categoryId;
   final DateTime expiryDate;
@@ -80,6 +85,8 @@ class PantryItem {
   final ItemStatus status;
   final String? addedBy;
   final DateTime? addedAt;
+
+  PantryItem withHousehold(String hid) => PantryItem.fromMap(id, toMap(), householdId: hid);
 
   bool get isOpened => openedAt != null;
   bool get isFrozen => frozenAt != null;
@@ -117,6 +124,7 @@ class PantryItem {
         status: status ?? this.status,
         addedBy: addedBy,
         addedAt: addedAt,
+        householdId: householdId,
       );
 
   Map<String, Object?> toMap() => {
@@ -141,8 +149,9 @@ class PantryItem {
         'addedAt': addedAt,
       };
 
-  factory PantryItem.fromMap(String id, Map<String, Object?> m) => PantryItem(
+  factory PantryItem.fromMap(String id, Map<String, Object?> m, {String? householdId}) => PantryItem(
         id: id,
+        householdId: householdId,
         name: (m['name'] as String?) ?? '',
         categoryId: (m['categoryId'] as String?) ?? 'other',
         expiryDate: _date(m['expiryDate']) ?? DateTime.now(),

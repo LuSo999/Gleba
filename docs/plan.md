@@ -17,11 +17,12 @@
 - [ ] Sdílená databáze produktů Gleba
 - [x] Datum: ručně, z GS1 kódu, návrh podle kategorie
 - [x] Parser dat z textu (připraven pro OCR)
-- [ ] Focení data – ML Kit OCR
+- [x] Focení data – ML Kit OCR (Android)
 - [x] Položky: kategorie, umístění s auto-návrhem, množství, typ data, otevřeno, zamraženo, zbytky
 - [x] Hlavní obrazovka „lednice“ s animacemi + seznam „Spotřebuj nejdřív“
 - [x] Upozornění: logika vrstvených pravidel a ranního souhrnu (testováno)
-- [ ] Upozornění: plánování v telefonu, obrazovka nastavení, tlačítka v upozornění, synchronizace na pozadí
+- [x] Upozornění: plánování v telefonu, obrazovka nastavení (výchozí / kategorie / produkt, ranní souhrn), tlačítka Snězeno/Vyhozeno/Odložit
+- [ ] Upozornění: aktualizace na pozadí, když něco přidá jiný člen domácnosti (FCM + Cloud Functions, Blaze je zapnutý)
 - [x] Offline režim (Firestore cache)
 - [x] Alergeny, Nutri-Score
 

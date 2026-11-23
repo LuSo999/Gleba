@@ -52,4 +52,17 @@ void main() {
     expect(freshnessOf(b, now), Freshness.pastBestBefore);
     expect(sortByUrgency([d, b, c, a], now).map((i) => i.id), ['expired', 'today', 'bb', 'fresh']);
   });
+
+  test('rules and prefs survive a round trip', () {
+    const r = NotificationRule(
+        scope: RuleScope.product, targetId: '859', dateType: DateType.bestBefore, enabled: false, daysBefore: 5,
+        hour: 18, minute: 15, label: 'Jogurt');
+    final back = NotificationRule.fromMap(r.toMap());
+    expect(back.key, r.key);
+    expect((back.enabled, back.daysBefore, back.hour, back.minute, back.label), (false, 5, 18, 15, 'Jogurt'));
+    const p = NotificationPrefs(itemNotifications: false, morningDigest: true, digestHour: 6, digestMinute: 45);
+    final pb = NotificationPrefs.fromMap(p.toMap());
+    expect((pb.itemNotifications, pb.morningDigest, pb.digestHour, pb.digestMinute), (false, true, 6, 45));
+    expect(NotificationPrefs.fromMap(null).itemNotifications, isTrue);
+  });
 }

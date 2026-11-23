@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../domain/models.dart';
+import '../domain/notification_rules.dart';
 import 'repository.dart';
 
 /// In-memory backend used until Firebase is configured, and in widget tests.
@@ -46,6 +47,8 @@ class DemoRepository implements GlebaRepository {
   final _items = <String, Map<String, PantryItem>>{};
   final _products = <String, ProductInfo>{};
   final _invites = <String, InviteInfo>{};
+  final _rules = <String, NotificationRule>{};
+  var _prefs = const NotificationPrefs();
   final _changes = StreamController<void>.broadcast();
   var _seq = 0;
 
@@ -163,5 +166,32 @@ class DemoRepository implements GlebaRepository {
     _products['$householdId/${item.ean}'] = ProductInfo(
       ean: item.ean!, name: item.name, brand: item.brand, categoryId: item.categoryId,
       locationType: item.locationType, source: 'household');
+  }
+
+  @override
+  Future<PantryItem?> getItem(String householdId, String itemId) async => _items[householdId]?[itemId];
+
+  @override
+  Stream<List<NotificationRule>> watchNotificationRules(String uid) => _watch(() => _rules.values.toList());
+
+  @override
+  Future<void> saveNotificationRule(String uid, NotificationRule rule) async {
+    _rules[rule.key] = rule;
+    _changed();
+  }
+
+  @override
+  Future<void> deleteNotificationRule(String uid, NotificationRule rule) async {
+    _rules.remove(rule.key);
+    _changed();
+  }
+
+  @override
+  Stream<NotificationPrefs> watchNotificationPrefs(String uid) => _watch(() => _prefs);
+
+  @override
+  Future<void> saveNotificationPrefs(String uid, NotificationPrefs prefs) async {
+    _prefs = prefs;
+    _changed();
   }
 }
