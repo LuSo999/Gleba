@@ -400,5 +400,6 @@
   "invCheck": "Zkontrolovat",
   "inventoryReminder": "Připomínka inventury",
   "inventoryReminderText": "Jednou týdně rychle projet lednici",
-  "weekday": "Den"
+  "weekday": "Den",
+  "widgetTitle": "Brzy projde"
 }

@@ -6,6 +6,9 @@ import '../app_state.dart';
 import '../domain/models.dart';
 import '../services/notification_service.dart';
 import '../services/push_service.dart';
+import '../services/widget_service.dart';
+import 'package:home_widget/home_widget.dart';
+import '../l10n/app_localizations.dart';
 import 'widgets/item_sheet.dart';
 
 /// Registers the phone for push notifications after sign-in and handles the
@@ -23,12 +26,31 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
   @override
   void initState() {
     super.initState();
+    if (WidgetService.supported) {
+      // Taps on the home-screen widget.
+      HomeWidget.initiallyLaunchedFromHomeWidget().then(_openFromWidget);
+      HomeWidget.widgetClicked.listen(_openFromWidget);
+    }
     // Demo mode has no server, so no push notifications.
     if (!NotificationService.supported || ref.read(isDemoProvider)) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => _register());
     NotificationService.instance.init(_handle).then((launchAction) {
       if (launchAction != null) _handle(launchAction);
     });
+  }
+
+  void _openFromWidget(Uri? uri) {
+    if (uri == null || !mounted) return;
+    final route = WidgetService.routeFor(uri);
+    if (route != '/') ref.read(routerProvider).push(route);
+  }
+
+  void _updateWidget() {
+    final items = ref.read(allItemsProvider).value;
+    if (items == null) return;
+    final locale = ref.read(settingsProvider).locale ?? WidgetsBinding.instance.platformDispatcher.locale;
+    WidgetService.update(items, lookupAppLocalizations(
+        AppLocalizations.supportedLocales.any((l) => l.languageCode == locale.languageCode) ? locale : const Locale('en')));
   }
 
   void _register() {
@@ -68,6 +90,10 @@ class _NotificationSchedulerState extends ConsumerState<NotificationScheduler> {
 
   @override
   Widget build(BuildContext context) {
+    if (WidgetService.supported) {
+      ref.listen(allItemsProvider, (_, _) => _updateWidget());
+      ref.listen(settingsProvider, (_, _) => _updateWidget());
+    }
     if (NotificationService.supported && !ref.read(isDemoProvider)) {
       ref.listen(userProvider, (_, _) => _register());
       ref.listen(settingsProvider, (prev, next) {

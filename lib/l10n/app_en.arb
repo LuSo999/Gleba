@@ -245,5 +245,6 @@
   "invCheck": "Check",
   "inventoryReminder": "Inventory reminder",
   "inventoryReminderText": "A quick fridge check once a week",
-  "weekday": "Day"
+  "weekday": "Day",
+  "widgetTitle": "Expiring soon"
 }

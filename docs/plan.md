@@ -33,7 +33,7 @@
 - [x] Nákupní seznam (sdílený), přidání z detailu produktu, hlídání minimálních zásob s automatickým doplněním
 - [x] Statistiky: snězeno včas / vyhozeno (ks, Kč), vývoj po týdnech/měsících, nejčastěji vyhazované kategorie a produkty, kdo co dělá, tipy
 - [x] Inventurní režim: karty (je tam / snězeno / část / vyhozeno), filtr podle místa a „po datu“, zpět, týdenní připomínka, upozornění na dlouho prošlé věci na hlavní obrazovce
-- [ ] Widget
+- [x] Widget na plochu: 5 věcí, které projdou nejdřív (sám se přepočítává o půlnoci), tlačítko + pro skenování
 - [ ] ~~Web push~~ (nechceme – upozornění jen do telefonu)
 
 ## Fáze 3: Volitelné
