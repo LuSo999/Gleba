@@ -423,5 +423,102 @@
   "nutritionFromLabel": "From label (AI)",
   "nutrProtein": "Protein g",
   "nutrCarbs": "Carbs g",
-  "nutrFat": "Fat g"
+  "nutrFat": "Fat g",
+  "batchTitle": "Photo series",
+  "batchSubtitle": "Snap the whole shopping, Gleba processes it at once",
+  "batchCameraStarting": "Starting the camera…",
+  "batchCameraError": "Couldn't start the camera: {msg}",
+  "@batchCameraError": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "batchCount": "{photos} photos · {products} products",
+  "@batchCount": {
+    "placeholders": {
+      "photos": {
+        "type": "int"
+      },
+      "products": {
+        "type": "int"
+      }
+    }
+  },
+  "batchAddReceipt": "+ receipt",
+  "batchAimBarcode": "Aim at the barcode",
+  "batchAimDate": "Now the expiry date",
+  "batchStepBarcode": "Barcode",
+  "batchStepDate": "Date",
+  "batchNoDate": "No date",
+  "batchDone": "Done",
+  "batchReviewTitle": "Check the shopping",
+  "batchNoReceipt": "Add the receipt",
+  "batchReceiptHint": "Fills in prices and quantities",
+  "batchReceiptPaired": "Receipt paired: {paired} of {total} photos, {onlyReceipt} lines without a photo",
+  "@batchReceiptPaired": {
+    "placeholders": {
+      "paired": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "onlyReceipt": {
+        "type": "int"
+      }
+    }
+  },
+  "batchProcessed": "Processed {done} of {total}",
+  "@batchProcessed": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "batchUnpaired": "{count} products not found on the receipt – tap the receipt to pair them by hand.",
+  "@batchUnpaired": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchMorePhotos": "Add photos",
+  "batchSave": "Save {count}",
+  "@batchSave": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchReading": "Reading the photo…",
+  "batchUnknownProduct": "Unknown product – tap to fill in",
+  "batchNotFood": "not food",
+  "batchEstimate": "estimate: {date}",
+  "@batchEstimate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "batchTagAiProduct": "product by AI",
+  "batchTagAiDate": "date by AI",
+  "batchTagCodeDate": "date from code",
+  "batchTagReceipt": "receipt",
+  "batchTagReceiptOnly": "receipt only",
+  "batchTagNotOnReceipt": "not on receipt",
+  "batchTagUnknown": "not recognised",
+  "batchNotOnReceipt": "Not on the receipt",
+  "batchPairTitle": "Pair with the receipt",
+  "batchPairOn": "Pair with the receipt",
+  "batchPairOnText": "Turn off when the photos are from another shopping trip.",
+  "batchChange": "Change"
 }

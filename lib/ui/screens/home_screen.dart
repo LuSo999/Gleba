@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
 import '../../domain/freshness.dart';
+import '../batch/batch_capture_screen.dart';
 import '../fridge/fridge_view.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -233,6 +234,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               title: Text(l.addLeftover),
               onTap: () => _go(ctx, '/add?mode=leftover'),
             ),
+            if (BatchCaptureScreen.supported)
+              ListTile(
+                leading: const Icon(Icons.burst_mode_outlined),
+                title: Text(l.batchTitle),
+                subtitle: Text(l.batchSubtitle),
+                onTap: () => _go(ctx, '/batch'),
+              ),
             ListTile(
               leading: const Icon(Icons.receipt_long),
               title: Text(l.receiptTitle),

@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'app_state.dart';
 import 'l10n/app_localizations.dart';
 import 'domain/models.dart';
+import 'ui/batch/batch_capture_screen.dart';
+import 'ui/batch/batch_review_screen.dart';
 import 'ui/fridge/interior_screen.dart';
 import 'ui/notification_scheduler.dart';
 import 'ui/screens/add_item_screen.dart';
@@ -76,6 +78,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           )),
         ),
       ),
+      GoRoute(path: '/batch', builder: (_, _) => const BatchCaptureScreen()),
+      GoRoute(path: '/batch/review', builder: (_, _) => Narrow(const BatchReviewScreen())),
+      GoRoute(path: '/batch/pair', builder: (_, _) => Narrow(const BatchPairScreen())),
       GoRoute(path: '/plan', builder: (_, _) => Narrow(const PlanScreen())),
       GoRoute(path: '/take', builder: (_, _) => Narrow(const TakeScreen())),
       GoRoute(path: '/stats', builder: (_, _) => Narrow(const StatsScreen())),

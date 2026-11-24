@@ -624,5 +624,102 @@
   "nutritionFromLabel": "Z etikety (AI)",
   "nutrProtein": "Bílkoviny g",
   "nutrCarbs": "Sacharidy g",
-  "nutrFat": "Tuky g"
+  "nutrFat": "Tuky g",
+  "batchTitle": "Focení v sérii",
+  "batchSubtitle": "Nafoťte celý nákup, Gleba ho zpracuje najednou",
+  "batchCameraStarting": "Zapínám fotoaparát…",
+  "batchCameraError": "Fotoaparát se nepodařilo spustit: {msg}",
+  "@batchCameraError": {
+    "placeholders": {
+      "msg": {
+        "type": "String"
+      }
+    }
+  },
+  "batchCount": "{photos} fotek · {products} výrobků",
+  "@batchCount": {
+    "placeholders": {
+      "photos": {
+        "type": "int"
+      },
+      "products": {
+        "type": "int"
+      }
+    }
+  },
+  "batchAddReceipt": "+ účtenka",
+  "batchAimBarcode": "Zamiřte na čárový kód",
+  "batchAimDate": "Teď datum spotřeby",
+  "batchStepBarcode": "Čárový kód",
+  "batchStepDate": "Datum",
+  "batchNoDate": "Bez data",
+  "batchDone": "Hotovo",
+  "batchReviewTitle": "Zkontrolovat nákup",
+  "batchNoReceipt": "Přidat účtenku",
+  "batchReceiptHint": "Doplní ceny a počty kusů",
+  "batchReceiptPaired": "Účtenka spárovaná: {paired} z {total} fotek, {onlyReceipt} řádků bez fotky",
+  "@batchReceiptPaired": {
+    "placeholders": {
+      "paired": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "onlyReceipt": {
+        "type": "int"
+      }
+    }
+  },
+  "batchProcessed": "Zpracováno {done} z {total}",
+  "@batchProcessed": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "batchUnpaired": "{count} výrobků na účtence nenalezeno – klepněte na účtenku a spárujte ručně.",
+  "@batchUnpaired": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchMorePhotos": "Přidat fotky",
+  "batchSave": "Uložit {count}",
+  "@batchSave": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchReading": "Čtu fotku…",
+  "batchUnknownProduct": "Nepoznaný výrobek – klepněte a doplňte",
+  "batchNotFood": "nepotravina",
+  "batchEstimate": "odhad: do {date}",
+  "@batchEstimate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "batchTagAiProduct": "výrobek přes AI",
+  "batchTagAiDate": "datum přes AI",
+  "batchTagCodeDate": "datum z kódu",
+  "batchTagReceipt": "účtenka",
+  "batchTagReceiptOnly": "jen z účtenky",
+  "batchTagNotOnReceipt": "na účtence nenalezeno",
+  "batchTagUnknown": "nepoznáno",
+  "batchNotOnReceipt": "Není na účtence",
+  "batchPairTitle": "Spárovat s účtenkou",
+  "batchPairOn": "Párovat s účtenkou",
+  "batchPairOnText": "Vypněte, když jsou fotky z jiného nákupu.",
+  "batchChange": "Změnit"
 }
