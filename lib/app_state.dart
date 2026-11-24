@@ -11,6 +11,7 @@ import 'domain/history.dart';
 import 'domain/models.dart';
 import 'domain/notification_rules.dart';
 import 'domain/shopping.dart';
+import 'services/health_sync.dart';
 
 /// Overridden in main() with the Firebase or demo implementation.
 final authServiceProvider = Provider<AuthService>((ref) => throw UnimplementedError());
@@ -119,7 +120,11 @@ class AppSettings {
     this.partialConsumption = true,
     this.shareToOff,
     this.healthWrite = false,
+    this.askWhoAte = true,
   });
+
+  /// "Who ate it?" after Eaten (households with more members).
+  final bool askWhoAte;
 
   /// Log eaten food to Health Connect (Samsung Health).
   final bool healthWrite;
@@ -146,6 +151,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
       partialConsumption: _prefs?.getBool('partialConsumption') ?? true,
       shareToOff: _prefs?.getBool('shareToOff'),
       healthWrite: _prefs?.getBool('healthWrite') ?? false,
+      askWhoAte: _prefs?.getBool('askWhoAte') ?? true,
     );
   }
 
@@ -156,13 +162,20 @@ class SettingsNotifier extends Notifier<AppSettings> {
     bool? partial,
     bool? share,
     bool? health,
+    bool? whoAte,
   }) => AppSettings(
     locale: clearLocale ? null : (locale ?? state.locale),
     animations: animations ?? state.animations,
     partialConsumption: partial ?? state.partialConsumption,
     shareToOff: share ?? state.shareToOff,
     healthWrite: health ?? state.healthWrite,
+    askWhoAte: whoAte ?? state.askWhoAte,
   );
+
+  void setAskWhoAte(bool v) {
+    _prefs?.setBool('askWhoAte', v);
+    state = _copy(whoAte: v);
+  }
 
   void setHealthWrite(bool v) {
     _prefs?.setBool('healthWrite', v);
@@ -191,3 +204,22 @@ class SettingsNotifier extends Notifier<AppSettings> {
 }
 
 final settingsProvider = NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
+
+/// Background upkeep for the active household: keeps my name on it (for
+/// "who ate it?") and writes food others marked as eaten by me to Health.
+final householdUpkeepProvider = Provider<void>((ref) {
+  final h = ref.watch(activeHouseholdProvider);
+  final user = ref.watch(userProvider).value;
+  final health = ref.watch(settingsProvider.select((s) => s.healthWrite));
+  if (h == null || user == null) return;
+  final repo = ref.read(repositoryProvider);
+  final name = user.shortName;
+  Future.microtask(() async {
+    if (name.isNotEmpty && h.memberNames[user.uid] != name) {
+      try {
+        await repo.setMemberName(h.id, user.uid, name);
+      } catch (_) {}
+    }
+    if (health) await HealthSync.run(repo, h.id, user.uid, ref.read(sharedPrefsProvider));
+  });
+});

@@ -205,10 +205,12 @@ class FirestoreRepository implements GlebaRepository {
     ItemStatus how,
     GlebaUser by, {
     double? quantity,
+    Map<String, double>? eaters,
   }) async {
     final q = quantity ?? item.quantity;
     final remaining = item.quantity - q;
     final event = _events(householdId).doc();
+    final eaten = how == ItemStatus.consumed;
     await _local(
       (_db.batch()
             ..update(_items(householdId).doc(item.id), {
@@ -220,10 +222,11 @@ class FirestoreRepository implements GlebaRepository {
               _eventData(
                 HistoryEvent.forItem(
                   item,
-                  how == ItemStatus.discarded ? HistoryType.discarded : HistoryType.consumed,
+                  eaten ? HistoryType.consumed : HistoryType.discarded,
                   by: by.uid,
                   byName: by.shortName,
                   quantity: q,
+                  eaters: eaten ? (eaters ?? {by.uid: 1.0}) : null,
                 ),
               )..['daysLeft'] = dateOnly(item.expiryDate).difference(dateOnly(DateTime.now())).inDays,
             ))
@@ -231,6 +234,63 @@ class FirestoreRepository implements GlebaRepository {
     );
     return event.id;
   }
+
+  @override
+  Future<CookResult> cookMeal(String householdId, List<PantryItem> ingredients, PantryItem meal, GlebaUser by) async {
+    final batch = _db.batch();
+    final ids = <String>[];
+    final today = dateOnly(DateTime.now());
+    for (final i in ingredients) {
+      final ev = _events(householdId).doc();
+      ids.add(ev.id);
+      batch
+        ..update(_items(householdId).doc(i.id), {'status': ItemStatus.consumed.name, 'updatedAt': FieldValue.serverTimestamp()})
+        ..set(
+          ev,
+          _eventData(HistoryEvent.forItem(i, HistoryType.consumed, by: by.uid, byName: by.shortName, cookedInto: meal.name))
+            ..['daysLeft'] = dateOnly(i.expiryDate).difference(today).inDays,
+        );
+    }
+    final mealDoc = _items(householdId).doc();
+    batch
+      ..set(
+        mealDoc,
+        _toFirestore(meal)
+          ..['addedBy'] = by.uid
+          ..['addedAt'] = FieldValue.serverTimestamp()
+          ..['updatedAt'] = FieldValue.serverTimestamp(),
+      )
+      ..set(
+        _events(householdId).doc(),
+        _eventData(HistoryEvent.forItem(PantryItem.fromMap(mealDoc.id, meal.toMap()), HistoryType.added,
+            by: by.uid, byName: by.shortName)),
+      );
+    await _local(batch.commit());
+    return CookResult(mealDoc.id, ids);
+  }
+
+  @override
+  Future<void> undoCook(String householdId, List<PantryItem> ingredients, CookResult result) {
+    final batch = _db.batch();
+    for (var k = 0; k < ingredients.length; k++) {
+      batch
+        ..update(_items(householdId).doc(ingredients[k].id), {
+          'status': ingredients[k].status.name,
+          'quantity': ingredients[k].quantity,
+          'updatedAt': FieldValue.serverTimestamp(),
+        })
+        ..delete(_events(householdId).doc(result.eventIds[k]));
+    }
+    batch.update(_items(householdId).doc(result.mealId), {
+      'status': ItemStatus.deleted.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    return _local(batch.commit());
+  }
+
+  @override
+  Future<void> setMemberName(String householdId, String uid, String name) =>
+      _local(_db.collection('households').doc(householdId).update({'memberNames.$uid': name}));
 
   @override
   Future<String> deleteItem(String householdId, PantryItem item, GlebaUser by) async {

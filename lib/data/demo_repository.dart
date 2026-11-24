@@ -43,9 +43,12 @@ class DemoAuthService implements AuthService {
 }
 
 class DemoRepository implements GlebaRepository {
-  DemoRepository({DateTime? now, bool seed = true}) {
+  /// [partner]: the demo household has a second member (for "who ate it").
+  DemoRepository({DateTime? now, bool seed = true, this.partner = false}) {
     if (seed) _seed(now ?? DateTime.now());
   }
+
+  final bool partner;
 
   final _households = <Household>[];
   final _items = <String, Map<String, PantryItem>>{};
@@ -62,7 +65,12 @@ class DemoRepository implements GlebaRepository {
   var _seq = 0;
 
   void _seed(DateTime now) {
-    _households.add(const Household(id: 'home', name: 'Domov', memberIds: ['demo']));
+    _households.add(Household(
+      id: 'home',
+      name: 'Domov',
+      memberIds: ['demo', if (partner) 'partner'],
+      memberNames: {'demo': 'Demo', if (partner) 'partner': 'Ája'},
+    ));
     final d = dateOnly(now);
     PantryItem it(String name, String cat, int days, LocationType loc,
             {DateType type = DateType.useBy, double q = 1, String unit = 'ks', bool opened = false}) =>
@@ -174,14 +182,56 @@ class DemoRepository implements GlebaRepository {
 
   @override
   Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by,
-      {double? quantity}) async {
+      {double? quantity, Map<String, double>? eaters}) async {
     final q = quantity ?? item.quantity;
     final remaining = item.quantity - q;
     _items[householdId]?[item.id] = remaining > 0 ? item.copyWith(quantity: remaining) : item.copyWith(status: how);
-    _log(householdId, HistoryEvent.forItem(item, how == ItemStatus.discarded ? HistoryType.discarded : HistoryType.consumed,
-        by: by.uid, byName: by.shortName, quantity: q));
+    final eaten = how == ItemStatus.consumed;
+    _log(householdId, HistoryEvent.forItem(item, eaten ? HistoryType.consumed : HistoryType.discarded,
+        by: by.uid, byName: by.shortName, quantity: q, eaters: eaten ? (eaters ?? {by.uid: 1.0}) : null));
     _changed();
     return _events[householdId]!.first.id;
+  }
+
+  @override
+  Future<CookResult> cookMeal(String householdId, List<PantryItem> ingredients, PantryItem meal, GlebaUser by) async {
+    final ids = <String>[];
+    for (final i in ingredients) {
+      _items[householdId]?[i.id] = i.copyWith(status: ItemStatus.consumed);
+      _log(householdId, HistoryEvent.forItem(i, HistoryType.consumed, by: by.uid, byName: by.shortName, cookedInto: meal.name));
+      ids.add(_events[householdId]!.first.id);
+    }
+    final id = 'i${_seq++}';
+    final saved = PantryItem.fromMap(id, meal.toMap()..['addedBy'] = by.uid);
+    (_items[householdId] ??= {})[id] = saved;
+    _log(householdId, HistoryEvent.forItem(saved, HistoryType.added, by: by.uid, byName: by.shortName));
+    _changed();
+    return CookResult(id, ids);
+  }
+
+  @override
+  Future<void> undoCook(String householdId, List<PantryItem> ingredients, CookResult result) async {
+    for (final i in ingredients) {
+      _items[householdId]?[i.id] = i;
+    }
+    _events[householdId]?.removeWhere((e) => result.eventIds.contains(e.id));
+    _items[householdId]?.remove(result.mealId);
+    _changed();
+  }
+
+  @override
+  Future<void> setMemberName(String householdId, String uid, String name) async {
+    final i = _households.indexWhere((h) => h.id == householdId);
+    if (i < 0) return;
+    final h = _households[i];
+    _households[i] = Household(
+      id: h.id,
+      name: h.name,
+      memberIds: h.memberIds,
+      aiShared: h.aiShared,
+      memberNames: {...h.memberNames, uid: name},
+    );
+    _changed();
   }
 
   @override

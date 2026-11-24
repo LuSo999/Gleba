@@ -53,6 +53,13 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: n.setPartialConsumption,
           ),
           SwitchListTile(
+            secondary: const Icon(Icons.groups_outlined),
+            title: Text(l.askWhoAte),
+            subtitle: Text(l.askWhoAteText),
+            value: s.askWhoAte,
+            onChanged: n.setAskWhoAte,
+          ),
+          SwitchListTile(
             secondary: const Text('🌍', style: TextStyle(fontSize: 22)),
             title: Text(l.offShare),
             subtitle: Text(l.offShareText),

@@ -59,7 +59,11 @@ class PantryItem {
     this.householdId,
     this.checkedAt,
     this.nutrition,
+    this.runningLow = false,
   });
+
+  /// Marked during inventory: almost gone, buy more soon.
+  final bool runningLow;
 
   final String id;
 
@@ -112,6 +116,7 @@ class PantryItem {
     DateTime? frozenAt,
     ItemStatus? status,
     DateTime? checkedAt,
+    bool? runningLow,
   }) => PantryItem(
     id: id,
     name: name ?? this.name,
@@ -136,6 +141,7 @@ class PantryItem {
     householdId: householdId,
     checkedAt: checkedAt ?? this.checkedAt,
     nutrition: nutrition,
+    runningLow: runningLow ?? this.runningLow,
   );
 
   Map<String, Object?> toMap() => {
@@ -160,6 +166,7 @@ class PantryItem {
     'addedAt': addedAt,
     'checkedAt': checkedAt,
     'nutrition': nutrition?.toMap(),
+    'runningLow': runningLow,
   };
 
   factory PantryItem.fromMap(String id, Map<String, Object?> m, {String? householdId}) => PantryItem(
@@ -188,6 +195,7 @@ class PantryItem {
     addedAt: _date(m['addedAt']),
     checkedAt: _date(m['checkedAt']),
     nutrition: Nutrition.fromMap(m['nutrition']),
+    runningLow: m['runningLow'] == true,
   );
 }
 
@@ -272,11 +280,20 @@ double gramsEaten(PantryItem item, double quantity) => switch (item.unit) {
 };
 
 class Household {
-  const Household({required this.id, required this.name, required this.memberIds, this.aiShared = const {}});
+  const Household({
+    required this.id,
+    required this.name,
+    required this.memberIds,
+    this.aiShared = const {},
+    this.memberNames = const {},
+  });
 
   final String id;
   final String name;
   final List<String> memberIds;
+
+  /// Display names of the members (each member keeps their own up to date).
+  final Map<String, String> memberNames;
 
   /// AI providers with a key shared by the household: provider name → model.
   /// The keys themselves live server-side only.
@@ -286,6 +303,10 @@ class Household {
     id: id,
     name: (m['name'] as String?) ?? '',
     memberIds: List<String>.from((m['memberIds'] as List?) ?? const []),
+    memberNames: {
+      for (final e in ((m['memberNames'] as Map?) ?? const {}).entries)
+        if (e.value is String) '${e.key}': e.value as String,
+    },
     aiShared: {
       for (final e in ((m['ai'] as Map?) ?? const {}).entries)
         if (e.value is Map) '${e.key}': '${(e.value as Map)['model'] ?? ''}',

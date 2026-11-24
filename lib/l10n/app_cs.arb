@@ -541,5 +541,47 @@
       }
     }
   },
-  "histDeleted": "Smazáno"
+  "histDeleted": "Smazáno",
+  "whoAte": "Kdo snědl?",
+  "whoMe": "Já",
+  "whoMember": "Člen",
+  "whoOthers": "Ostatní",
+  "done": "Hotovo",
+  "askWhoAte": "Ptát se, kdo snědl",
+  "askWhoAteText": "Po „Snězeno“ vyberete, kdo jedl a kolik. Do Health se každému zapíše jeho díl.",
+  "snackConsumedMany": "Snězeno: {count} položek",
+  "@snackConsumedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackDiscardedMany": "Vyhozeno: {count} položek",
+  "@snackDiscardedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackDeletedMany": "Smazáno: {count} položek",
+  "@snackDeletedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackCooked": "🍲 {name} uvařeno z {count} surovin",
+  "@snackCooked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

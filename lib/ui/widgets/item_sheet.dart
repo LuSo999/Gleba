@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
 import '../../data/repository.dart';
+import '../../domain/eaters.dart';
 import '../../domain/freshness.dart';
 import '../../domain/history.dart';
 import '../../domain/models.dart';
@@ -16,6 +17,7 @@ import '../labels.dart';
 import '../theme.dart';
 import '../screens/shopping_screen.dart';
 import 'burst.dart';
+import 'who_ate_sheet.dart';
 
 /// Adds products that dropped below their stock rule to the shopping list.
 Future<void> restock(GlebaRepository repo, String hid, GlebaUser by, {List<StockRule>? rules}) async {
@@ -44,26 +46,30 @@ Future<void> restock(GlebaRepository repo, String hid, GlebaUser by, {List<Stock
 /// Item actions with an "Undo" snackbar. Everything needed is captured up
 /// front, so the actions keep working after the bottom sheet is closed.
 class ItemActions {
-  ItemActions._(this._repo, this._hid, this._user, this._anim, this._overlay, this._messenger, this._l, this._health);
+  ItemActions._(this._repo, this._household, this._user, this._anim, this._overlay, this._messenger, this._l,
+      this._health, this._askWhoAte);
 
   static ItemActions? of(BuildContext host, WidgetRef ref) {
-    final hid = ref.read(activeHouseholdProvider)?.id;
+    final household = ref.read(activeHouseholdProvider);
     final user = ref.read(userProvider).value;
-    if (hid == null || user == null) return null;
+    if (household == null || user == null) return null;
     return ItemActions._(
       ref.read(repositoryProvider),
-      hid,
+      household,
       user,
       ref.read(settingsProvider).animations,
       Overlay.maybeOf(host, rootOverlay: true),
       ScaffoldMessenger.maybeOf(host),
       AppLocalizations.of(host),
       ref.read(settingsProvider).healthWrite && HealthService.supported,
+      ref.read(settingsProvider).askWhoAte,
     );
   }
 
   final GlebaRepository _repo;
-  final String _hid;
+  final Household _household;
+  String get _hid => _household.id;
+  final bool _askWhoAte;
   final GlebaUser _user;
   final bool _anim;
   final OverlayState? _overlay;
@@ -84,23 +90,125 @@ class ItemActions {
       );
   }
 
+  /// Whether "Eaten" asks who ate it.
+  bool get asksWhoAte => _askWhoAte && _household.memberIds.length > 1;
+
+  /// null = the sheet was dismissed (cancel the action).
+  Future<Map<String, double>?> _eaters(String title, double? grams) async {
+    if (!asksWhoAte) return {_user.uid: 1.0};
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return {_user.uid: 1.0};
+    return showWhoAteSheet(ctx, household: _household, myUid: _user.uid, title: title, grams: grams);
+  }
+
+  static double? _gramsOf(PantryItem item, double q) =>
+      item.nutrition != null || const ['g', 'kg', 'ml', 'l'].contains(item.unit) ? gramsEaten(item, q) : null;
+
   Future<void> finish(PantryItem item, ItemStatus how, {double? quantity}) async {
-    how == ItemStatus.consumed
+    final eaten = how == ItemStatus.consumed;
+    final q = quantity ?? item.quantity;
+    Map<String, double>? eaters;
+    if (eaten) {
+      eaters = await _eaters(item.name, _gramsOf(item, q));
+      if (eaters == null) return;
+    }
+    eaten
         ? showBurstOn(_overlay, '😋', particles: const ['✨', '💚', '⭐'], enabled: _anim)
         : showBurstOn(_overlay, '🗑️', particles: const ['💧'], enabled: _anim);
-    final eventId = await _repo.finishItem(_hid, item, how, _user, quantity: quantity);
+    final eventId = await _repo.finishItem(_hid, item, how, _user, quantity: quantity, eaters: eaters);
     await restock(_repo, _hid, _user);
     final label = quantity != null && quantity < item.quantity
         ? '${item.name} (${_fmt(quantity)} ${item.unit})'
         : item.name;
     _snack(
-      how == ItemStatus.consumed ? _l.snackConsumed(label) : _l.snackDiscarded(label),
+      eaten ? _l.snackConsumed(label) : _l.snackDiscarded(label),
       () => _repo.undoFinish(_hid, item, eventId),
     );
-    if (how == ItemStatus.consumed && _health && item.nutrition != null) {
-      await _logToHealth(item, gramsEaten(item, quantity ?? item.quantity));
+    if (eaten && _health && item.nutrition != null) {
+      if (asksWhoAte) {
+        // The split was just chosen: my share goes to Health right away; the
+        // others' phones write theirs (HealthSync).
+        final mine = eaters![_user.uid] ?? 0;
+        if (mine > 0 && await HealthService.instance.writeEaten(item, gramsEaten(item, q) * mine)) {
+          _messenger?.showSnackBar(SnackBar(content: Text(_l.healthWritten)));
+        }
+      } else {
+        await _logToHealth(item, gramsEaten(item, q));
+      }
     }
   }
+
+  /// Several items eaten at once (bread + butter + ham + cheese).
+  Future<void> finishMany(List<PantryItem> items, ItemStatus how) async {
+    if (items.isEmpty) return;
+    final eaten = how == ItemStatus.consumed;
+    Map<String, double>? eaters;
+    if (eaten) {
+      final grams = items.map((i) => _gramsOf(i, i.quantity)).toList();
+      eaters = await _eaters(
+        items.map((i) => i.name).join(' + '),
+        grams.contains(null) ? null : grams.fold<double>(0, (s, g) => s + g!),
+      );
+      if (eaters == null) return;
+    }
+    eaten
+        ? showBurstOn(_overlay, '😋', particles: const ['✨', '💚', '⭐'], enabled: _anim)
+        : showBurstOn(_overlay, '🗑️', particles: const ['💧'], enabled: _anim);
+    final done = <(PantryItem, String)>[];
+    for (final i in items) {
+      done.add((i, await _repo.finishItem(_hid, i, how, _user, eaters: eaters)));
+    }
+    await restock(_repo, _hid, _user);
+    _snack(eaten ? _l.snackConsumedMany(items.length) : _l.snackDiscardedMany(items.length), () async {
+      for (final (i, e) in done) {
+        await _repo.undoFinish(_hid, i, e);
+      }
+    });
+    final mine = eaters?[_user.uid] ?? 0;
+    if (eaten && _health && mine > 0) {
+      var wrote = false;
+      for (final i in items.where((i) => i.nutrition != null)) {
+        wrote = await HealthService.instance.writeEaten(i, gramsEaten(i, i.quantity) * mine) || wrote;
+      }
+      if (wrote) _messenger?.showSnackBar(SnackBar(content: Text(_l.healthWritten)));
+    }
+  }
+
+  /// Items added by mistake, all at once.
+  Future<void> deleteMany(List<PantryItem> items) async {
+    final done = <(PantryItem, String)>[];
+    for (final i in items) {
+      done.add((i, await _repo.deleteItem(_hid, i, _user)));
+    }
+    _snack(_l.snackDeletedMany(items.length), () async {
+      for (final (i, e) in done) {
+        await _repo.undoFinish(_hid, i, e);
+      }
+    });
+  }
+
+  /// Cooks [items] into one dish that goes to the fridge.
+  Future<void> cook(List<PantryItem> items, String name) async {
+    if (items.isEmpty) return;
+    final now = DateTime.now();
+    final meal = PantryItem(
+      id: '',
+      name: name,
+      categoryId: 'leftovers',
+      expiryDate: suggestExpiry('leftovers', LocationType.fridge, now),
+      locationType: LocationType.fridge,
+      locationId: LocationType.fridge.name,
+      source: ItemSource.leftover,
+      nutrition: cookedNutrition([for (final i in items) (i, gramsEaten(i, i.quantity))]),
+      price: items.any((i) => i.price != null) ? items.fold<double>(0, (s, i) => s + (i.price ?? 0)) : null,
+    );
+    showBurstOn(_overlay, '🍲', particles: const ['✨', '🔥'], enabled: _anim);
+    final res = await _repo.cookMeal(_hid, items, meal, _user);
+    await restock(_repo, _hid, _user);
+    _snack(_l.snackCooked(name, items.length), () => _repo.undoCook(_hid, items, res));
+  }
+
+  Future<void> setRunningLow(PantryItem item, bool v) => change(item, item.copyWith(runningLow: v), HistoryType.edited);
 
   /// "How much did you eat?" with a live preview, then Health Connect.
   Future<void> _logToHealth(PantryItem item, double grams) async {

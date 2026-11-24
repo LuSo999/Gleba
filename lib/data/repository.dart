@@ -35,6 +35,13 @@ class InviteInfo {
   final DateTime expiresAt;
 }
 
+class CookResult {
+  const CookResult(this.mealId, this.eventIds);
+
+  final String mealId;
+  final List<String> eventIds;
+}
+
 /// Everything the UI needs from storage. Implemented by Firestore and by an
 /// in-memory demo used when Firebase isn't configured yet.
 abstract class GlebaRepository {
@@ -56,7 +63,18 @@ abstract class GlebaRepository {
 
   /// Marks [quantity] (default: everything) of an item as eaten or thrown away
   /// and records a history event. Returns the event id (needed for undo).
-  Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by, {double? quantity});
+  /// [eaters]: who ate it (uid or [othersEater] → share); defaults to [by].
+  Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by,
+      {double? quantity, Map<String, double>? eaters});
+
+  /// Cooks [ingredients] into one dish: they are used up (history "eaten",
+  /// without eaters – the dish is eaten later) and [meal] is added.
+  /// Returns the ids needed by [undoCook].
+  Future<CookResult> cookMeal(String householdId, List<PantryItem> ingredients, PantryItem meal, GlebaUser by);
+  Future<void> undoCook(String householdId, List<PantryItem> ingredients, CookResult result);
+
+  /// Keeps this member's display name on the household (for "who ate it").
+  Future<void> setMemberName(String householdId, String uid, String name);
 
   /// Removes an item added by mistake (not eaten, not thrown away, so not in
   /// the statistics). Returns the history event id; [undoFinish] reverts it.

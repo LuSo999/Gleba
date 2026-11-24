@@ -3,6 +3,9 @@ library;
 
 import 'models.dart';
 
+/// Id used in [HistoryEvent.eaters] for guests / anyone outside the household.
+const othersEater = 'others';
+
 enum HistoryType { added, consumed, discarded, opened, frozen, edited, restored, deleted }
 
 class HistoryEvent {
@@ -19,7 +22,22 @@ class HistoryEvent {
     this.by,
     this.byName,
     this.daysLeft,
+    this.eaters,
+    this.grams,
+    this.nutrition,
+    this.cookedInto,
   });
+
+  /// Used up as an ingredient of this dish (not eaten by anyone yet).
+  final String? cookedInto;
+
+  /// Who ate it: member uid (or [othersEater]) → share 0..1, summing to 1.
+  final Map<String, double>? eaters;
+
+  /// Grams eaten in total and the food's nutrition per 100 g – lets each
+  /// eater's own phone write their share to Health Connect.
+  final double? grams;
+  final Nutrition? nutrition;
 
   final String id;
   final String itemId;
@@ -44,8 +62,12 @@ class HistoryEvent {
   bool get canPutBack => isRemoval || type == HistoryType.deleted;
 
   factory HistoryEvent.forItem(PantryItem item, HistoryType type,
-          {String? by, String? byName, double? quantity, DateTime? at}) =>
+          {String? by, String? byName, double? quantity, DateTime? at, Map<String, double>? eaters, String? cookedInto}) =>
       HistoryEvent(
+        cookedInto: cookedInto,
+        eaters: eaters,
+        grams: eaters == null ? null : gramsEaten(item, quantity ?? item.quantity),
+        nutrition: eaters == null ? null : item.nutrition,
         id: '',
         itemId: item.id,
         type: type,
@@ -73,6 +95,10 @@ class HistoryEvent {
         'by': by,
         'byName': byName,
         'daysLeft': daysLeft,
+        if (eaters != null) 'eaters': eaters,
+        if (grams != null) 'grams': grams,
+        if (nutrition != null) 'nutrition': nutrition!.toMap(),
+        if (cookedInto != null) 'cookedInto': cookedInto,
       };
 
   factory HistoryEvent.fromMap(String id, Map<String, Object?> m) {
@@ -100,6 +126,15 @@ class HistoryEvent {
       by: m['by'] as String?,
       byName: m['byName'] as String?,
       daysLeft: (m['daysLeft'] as num?)?.toInt(),
+      eaters: m['eaters'] is Map
+          ? {
+              for (final e in (m['eaters'] as Map).entries)
+                if (e.value is num) '${e.key}': (e.value as num).toDouble(),
+            }
+          : null,
+      grams: (m['grams'] as num?)?.toDouble(),
+      nutrition: Nutrition.fromMap(m['nutrition']),
+      cookedInto: m['cookedInto'] as String?,
     );
   }
 }

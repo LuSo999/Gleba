@@ -340,5 +340,47 @@
       }
     }
   },
-  "histDeleted": "Deleted"
+  "histDeleted": "Deleted",
+  "whoAte": "Who ate it?",
+  "whoMe": "Me",
+  "whoMember": "Member",
+  "whoOthers": "Others",
+  "done": "Done",
+  "askWhoAte": "Ask who ate it",
+  "askWhoAteText": "After “Eaten” pick who ate it and how much. Everyone's share goes to their own Health.",
+  "snackConsumedMany": "Eaten: {count} items",
+  "@snackConsumedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackDiscardedMany": "Thrown away: {count} items",
+  "@snackDiscardedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackDeletedMany": "Deleted: {count} items",
+  "@snackDeletedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackCooked": "🍲 {name} cooked from {count} ingredients",
+  "@snackCooked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
