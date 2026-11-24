@@ -47,15 +47,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -x
           cp build/app/outputs/flutter-apk/app-debug.apk gleba.apk
-          git tag -f latest && git push -f origin latest
-          if gh release view latest >/dev/null 2>&1; then
-            gh release upload latest gleba.apk --clobber
-            gh release edit latest --notes "Sestaveno z $(git rev-parse --short HEAD): $(git log -1 --pretty=%s)"
-          else
-            gh release create latest gleba.apk --prerelease --title "Nejnovější verze" \
-              --notes "Sestaveno z $(git rev-parse --short HEAD): $(git log -1 --pretty=%s)"
-          fi
+          notes="Sestaveno z ${GITHUB_SHA::7}: $(git log -1 --pretty=%s)"
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest gleba.apk --target "$GITHUB_SHA" --prerelease \
+            --title "Nejnovější verze" --notes "$notes"
 
   functions:
     runs-on: ubuntu-latest
