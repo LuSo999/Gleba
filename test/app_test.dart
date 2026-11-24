@@ -321,6 +321,16 @@ void main() {
     await settle(tester);
     expect(find.text('2 z 13'), findsOneWidget);
     expect((await repo.watchActiveItems('home').first).length, 13);
+
+    // Delete (added by mistake): gone, not eaten or thrown, undoable.
+    await tester.tap(find.byTooltip('Smazat (přidáno omylem)'));
+    await settle(tester);
+    expect(find.text('3 z 13'), findsOneWidget);
+    expect((await repo.watchActiveItems('home').first).length, 12);
+    expect((await repo.fetchEvents('home')).first.type, HistoryType.deleted);
+    await tester.tap(find.byIcon(Icons.undo));
+    await settle(tester);
+    expect((await repo.watchActiveItems('home').first).length, 13);
   });
 
   testWidgets('take screen: search and take one yogurt', (tester) async {

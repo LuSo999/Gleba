@@ -13,7 +13,7 @@ import '../theme.dart';
 import '../widgets/burst.dart';
 import '../widgets/item_sheet.dart' show restock;
 
-enum _Act { keep, eaten, thrown, part }
+enum _Act { keep, eaten, thrown, part, deleted }
 
 class _Done {
   _Done(this.item, this.act, {this.eventId});
@@ -97,7 +97,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
       _Act.keep => Offset(size.width * 1.3, _drag.dy),
       _Act.eaten => Offset(-size.width * 1.3, _drag.dy),
       _Act.part => Offset(_drag.dx, -size.height),
-      _Act.thrown => Offset(0, size.height),
+      _Act.thrown || _Act.deleted => Offset(0, size.height),
     };
     _flyAnim = Tween(begin: _drag, end: target).animate(CurvedAnimation(parent: _fly, curve: Curves.easeIn));
     _fly.duration = _d(260);
@@ -111,11 +111,13 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
         eventId = await repo.finishItem(h.id, item, ItemStatus.consumed, user);
       case _Act.thrown:
         eventId = await repo.finishItem(h.id, item, ItemStatus.discarded, user);
+      case _Act.deleted:
+        eventId = await repo.deleteItem(h.id, item, user);
       case _Act.part:
         final used = item.quantity - partQty!;
         if (used > 0) eventId = await repo.finishItem(h.id, item, ItemStatus.consumed, user, quantity: used);
     }
-    if (act != _Act.keep) await restock(repo, h.id, user);
+    if (act != _Act.keep && act != _Act.deleted) await restock(repo, h.id, user);
     if (!mounted) return;
     setState(() {
       _done.add(_Done(item, act, eventId: eventId));
@@ -185,7 +187,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
     return Scaffold(
       appBar: AppBar(
         title: Text(l.inventoryTitle),
-        actions: [if (_done.isNotEmpty) IconButton(tooltip: l.undo, icon: const Icon(Icons.undo), onPressed: _undo)],
+        actions: [
+          if (_queue != null && _index < (_queue?.length ?? 0))
+            IconButton(
+              tooltip: l.deleteItem,
+              icon: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+              onPressed: () => _act(_Act.deleted),
+            ),
+          if (_done.isNotEmpty) IconButton(tooltip: l.undo, icon: const Icon(Icons.undo), onPressed: _undo),
+        ],
       ),
       body: Column(
         children: [
@@ -292,6 +302,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                                   _Act.eaten => '😋 ${l.invEaten}',
                                   _Act.part => '½ ${l.invPart}',
                                   _Act.thrown => '🗑️',
+                                  _Act.deleted => '❌ ${l.histDeleted}',
                                 },
                               ),
                             ),
