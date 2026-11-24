@@ -90,7 +90,15 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
                   else if (settings.models[p] case final m?)
                     l.aiKeyOk(m.length),
                 ].join(' · ')),
-                trailing: const Icon(Icons.edit_outlined),
+                trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (settings.models[p] case final m? when m.isNotEmpty)
+                    IconButton(
+                      tooltip: l.aiShowModels,
+                      icon: const Icon(Icons.list_alt),
+                      onPressed: () => _showModels(p, m),
+                    ),
+                  const Icon(Icons.edit_outlined),
+                ]),
                 onTap: () => _editKey(p),
               ),
             ),
@@ -100,6 +108,43 @@ class _AiSettingsScreenState extends ConsumerState<AiSettingsScreen> {
           else
             for (final f in AiFeature.values) _FeatureCard(feature: f, onReload: _load),
         ],
+      ),
+    );
+  }
+
+  /// Everything the key can use; ★ marks what Gleba recommends.
+  void _showModels(AiProvider p, List<AiModelInfo> models) {
+    final l = context.l;
+    final fast = recommendedModel(p, AiTier.fast, models);
+    final smart = recommendedModel(p, AiTier.smart, models);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        maxChildSize: 0.95,
+        builder: (context, scroll) => ListView(
+          controller: scroll,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('${aiProviderNames[p]} · ${l.aiKeyOk(models.length)}',
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            for (final m in models)
+              ListTile(
+                dense: true,
+                title: SelectableText(m.id),
+                subtitle: m.name == null || m.name == m.id ? null : Text(m.name!),
+                trailing: Text([
+                  if (m.id == fast) '★ ${l.aiTierFastShort}',
+                  if (m.id == smart) '★ ${l.aiTierSmartShort}',
+                ].join('  ')),
+              ),
+          ],
+        ),
       ),
     );
   }

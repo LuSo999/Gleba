@@ -526,5 +526,8 @@
       }
     }
   },
-  "receiptRetry": "Zkusit znovu stejnou fotku"
+  "receiptRetry": "Zkusit znovu stejnou fotku",
+  "aiShowModels": "Dostupné modely",
+  "aiTierFastShort": "rychlý",
+  "aiTierSmartShort": "chytrý"
 }

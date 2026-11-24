@@ -325,5 +325,8 @@
       }
     }
   },
-  "receiptRetry": "Try the same photo again"
+  "receiptRetry": "Try the same photo again",
+  "aiShowModels": "Available models",
+  "aiTierFastShort": "fast",
+  "aiTierSmartShort": "smart"
 }
