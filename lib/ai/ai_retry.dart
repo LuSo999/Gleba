@@ -15,7 +15,7 @@ Future<T> runWithFallback<T>(
   Future<T> Function(AiAttempt a) call, {
   void Function(AiRetryNote note)? onRetry,
   Future<void> Function(Duration d) sleep = _sleep,
-  List<Duration> backoff = const [Duration(seconds: 2), Duration(seconds: 6)],
+  List<Duration> backoff = const [Duration(seconds: 2)],
 }) async {
   Object? first;
   StackTrace? firstStack;

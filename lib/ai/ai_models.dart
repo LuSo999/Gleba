@@ -61,7 +61,10 @@ String? _geminiPick(List<String> ids, AiTier tier) {
       return r != 0 ? r : a.length.compareTo(b.length);
     });
   final numbered = usable.where((i) => version(i) > 0).toList();
-  final alias = tier == AiTier.fast ? 'gemini-flash-latest' : 'gemini-pro-latest';
+  // Measured on real receipts (test_ai): Flash-Lite reads them as exactly as
+  // Flash, in a few seconds, and is the one most often available.
+  final alias = tier == AiTier.fast ? 'gemini-flash-lite-latest' : 'gemini-pro-latest';
+  if (tier == AiTier.fast && !ids.contains(alias) && ids.contains('gemini-flash-latest')) return 'gemini-flash-latest';
   final newest = numbered.isEmpty ? 0 : version(numbered.first);
   final gen = numbered.where((i) => version(i) == newest).toList();
   String? inGen() => tier == AiTier.fast
@@ -75,17 +78,27 @@ String? _geminiPick(List<String> ids, AiTier tier) {
       usable.firstOrNull;
 }
 
+/// Gemini's free tier answers "high demand" model by model, so offer many.
+List<String?> _geminiFallbacks(AiTier tier, List<String> ids) {
+  double version(String i) => double.tryParse(RegExp(r'gemini-(\d+(?:\.\d+)?)').firstMatch(i)?.group(1) ?? '') ?? 0;
+  final numbered = ids.where((i) => version(i) > 0 && !RegExp(r'preview|image|tts|live|transcribe|robotics|computer|customtools').hasMatch(i)).toList()
+    ..sort((a, b) => version(b).compareTo(version(a)));
+  final lites = numbered.where((i) => i.endsWith('flash-lite')).take(2);
+  final flash = numbered.where((i) => i.endsWith('-flash')).take(1);
+  final gen4 = numbered.where((i) => version(i) >= 4 && !RegExp(r'pro|ultra|neon|argon|carbon').hasMatch(i)).take(1);
+  final pros = numbered.where((i) => i.endsWith('-pro')).take(1);
+  return tier == AiTier.fast
+      ? ['gemini-flash-lite-latest', ...lites, 'gemini-flash-latest', ...flash, ...gen4]
+      : ['gemini-pro-latest', ...pros, 'gemini-flash-latest', ...flash, 'gemini-flash-lite-latest'];
+}
+
 /// Other models of [p] to try when the chosen one is overloaded, best first.
 List<String> fallbackModels(AiProvider p, AiTier tier, String primary, List<AiModelInfo> models) {
   final ids = models.map((m) => m.id).toSet();
   final other = tier == AiTier.fast ? AiTier.smart : AiTier.fast;
   final candidates = <String?>[
-    if (p == AiProvider.gemini) ...[
-      if (tier == AiTier.smart) 'gemini-flash-latest',
-      'gemini-flash-lite-latest',
-      if (tier == AiTier.fast) 'gemini-pro-latest',
-      recommendedModel(p, other, models),
-    ] else ...[
+    if (p == AiProvider.gemini) ..._geminiFallbacks(tier, models.map((m) => m.id).toList())
+    else ...[
       recommendedModel(p, other, models),
       if (ids.isEmpty) defaultAiModels[p],
     ],

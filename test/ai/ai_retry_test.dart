@@ -27,8 +27,8 @@ void main() {
       return 'ok ${a.model}';
     }, onRetry: notes.add, sleep: noSleep);
     expect(r, 'ok gemini-flash-lite-latest');
-    expect(calls, ['gemini-flash-latest', 'gemini-flash-latest', 'gemini-flash-latest', 'gemini-flash-lite-latest']);
-    expect(notes.map((n) => n.retry), [1, 2, 0]);
+    expect(calls, ['gemini-flash-latest', 'gemini-flash-latest', 'gemini-flash-lite-latest']);
+    expect(notes.map((n) => n.retry), [1, 0]);
   });
 
   test('a non-transient error moves on without retrying; all failing throws the first error', () async {
@@ -44,8 +44,17 @@ void main() {
   });
 
   test('fallback models', () {
-    expect(fallbackModels(AiProvider.gemini, AiTier.fast, 'gemini-flash-latest', const []),
-        ['gemini-flash-lite-latest', 'gemini-pro-latest']);
+    expect(fallbackModels(AiProvider.gemini, AiTier.fast, 'gemini-flash-lite-latest', const []), ['gemini-flash-latest']);
+    // The models a real key listed on 2026-11-24.
+    const listed = [
+      'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-pro-latest', 'gemini-3-flash-preview',
+      'gemini-3.1-flash-lite', 'gemini-3.1-flash-image', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-transcribe',
+      'gemini-3.8-flash', 'gemini-4-argon', 'gemini-4-carbon', 'gemini-4-hydrogen', 'gemini-4-neon',
+    ];
+    final models = [for (final id in listed) AiModelInfo(id)];
+    expect(recommendedModel(AiProvider.gemini, AiTier.fast, models), 'gemini-flash-lite-latest');
+    expect(fallbackModels(AiProvider.gemini, AiTier.fast, 'gemini-flash-lite-latest', models),
+        ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash', 'gemini-4-hydrogen']);
     const claude = [AiModelInfo('claude-opus-5-5'), AiModelInfo('claude-sonnet-5-5'), AiModelInfo('claude-haiku-5-5')];
     expect(fallbackModels(AiProvider.anthropic, AiTier.fast, 'claude-haiku-5-5', claude), ['claude-opus-5-5']);
   });
