@@ -606,5 +606,7 @@
   "bulkCook": "Uvařit jídlo",
   "bulkThrow": "Vyhodit",
   "bulkDelete": "Smazat",
-  "aiReport": "Nahlásit nevhodnou odpověď"
+  "aiReport": "Nahlásit nevhodnou odpověď",
+  "editItem": "Upravit",
+  "priceCzk": "Cena (Kč)"
 }

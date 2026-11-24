@@ -154,6 +154,55 @@ void main() {
     expect(e.eaters!.values.reduce((a, b) => a + b), closeTo(1, 0.001));
   });
 
+  testWidgets('edit an item: wrong category fixed, undoable', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    final auth = DemoAuthService();
+    final repo = DemoRepository();
+    await auth.signInWithGoogle();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        isDemoProvider.overrideWithValue(true),
+        authServiceProvider.overrideWithValue(auth),
+        repositoryProvider.overrideWithValue(repo),
+      ],
+      child: const GlebaApp(),
+    ));
+    await settle(tester);
+    await tester.tap(find.text('Spotřebuj nejdřív'));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).first);
+    final tile = find.ancestor(of: find.text('Máslo'), matching: find.byType(ListTile));
+    await tester.ensureVisible(tile);
+    await settle(tester);
+    await tester.tapAt(tester.getTopLeft(tile) + const Offset(30, 20));
+    await settle(tester);
+    final before = (await repo.watchActiveItems('home').first).firstWhere((i) => i.name == 'Máslo');
+
+    await tester.tap(find.text('Upravit'));
+    await settle(tester);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Máslo'), 'Máslo Jihočeské');
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await settle(tester);
+    await tester.tap(find.textContaining('Tvrdé sýry').last);
+    await settle(tester);
+    await tester.tap(find.text('Uložit'));
+    await settle(tester);
+
+    var after = (await repo.watchActiveItems('home').first).firstWhere((i) => i.id == before.id);
+    expect(after.name, 'Máslo Jihočeské');
+    expect(after.categoryId, isNot(before.categoryId));
+    await tester.tap(find.text('Zpět'));
+    await settle(tester);
+    after = (await repo.watchActiveItems('home').first).firstWhere((i) => i.id == before.id);
+    expect(after.name, 'Máslo');
+    expect(after.categoryId, before.categoryId);
+  });
+
   testWidgets('an item added by mistake can be deleted and undone', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.5;

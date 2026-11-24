@@ -17,6 +17,7 @@ import '../labels.dart';
 import '../theme.dart';
 import '../screens/shopping_screen.dart';
 import 'burst.dart';
+import 'edit_item_sheet.dart';
 import 'who_ate_sheet.dart';
 
 /// Adds products that dropped below their stock rule to the shopping list.
@@ -403,6 +404,16 @@ class _ItemSheet extends ConsumerWidget {
                     icon: const Text('❄️'),
                     label: Text(l.freeze),
                   ),
+                TextButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    if (!host.mounted) return;
+                    final edited = await showEditItemSheet(host, item);
+                    if (edited != null) await actions?.change(item, edited, HistoryType.edited);
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(l.editItem),
+                ),
                 TextButton.icon(
                   onPressed: () => update(item.copyWith(runningLow: !item.runningLow), HistoryType.edited),
                   icon: const Text('📉'),

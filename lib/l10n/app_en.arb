@@ -405,5 +405,7 @@
   "bulkCook": "Cook a dish",
   "bulkThrow": "Throw away",
   "bulkDelete": "Delete",
-  "aiReport": "Report an inappropriate answer"
+  "aiReport": "Report an inappropriate answer",
+  "editItem": "Edit",
+  "priceCzk": "Price (CZK)"
 }
