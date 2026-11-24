@@ -35,16 +35,69 @@ String? recommendedModel(AiProvider p, AiTier tier, List<AiModelInfo> models) {
           ? first((i) => has(i, ['haiku'])) ?? first((i) => has(i, ['sonnet']))
           : first((i) => has(i, ['opus'])) ?? first((i) => has(i, ['sonnet']));
     case AiProvider.gemini:
-      final sorted = [...ids]..sort((a, b) => b.compareTo(a));
-      String? pick(List<String> any, [List<String> none = const []]) =>
-          sorted.contains('gemini-${any.first}-latest') ? 'gemini-${any.first}-latest' : sorted.where((i) => has(i, any, none)).firstOrNull;
-      return tier == AiTier.fast ? pick(['flash'], ['lite', 'image', 'tts', 'live']) : pick(['pro'], ['image', 'tts']);
+      return _geminiPick(ids, tier);
     case AiProvider.openai:
       final sorted = [...ids]..sort((a, b) => b.compareTo(a));
       return tier == AiTier.fast
           ? sorted.where((i) => i.startsWith('gpt-') && i.endsWith('-mini')).firstOrNull
           : sorted.where((i) => i.startsWith('gpt-') && !has(i, ['mini', 'nano', 'audio', 'realtime', 'search'])).firstOrNull;
   }
+}
+
+/// Gemini: Google's '-latest' alias when listed, else the newest generation
+/// (whatever its tiers are called) – a fast tier (flash/…) or a smart one (pro/…).
+String? _geminiPick(List<String> ids, AiTier tier) {
+  const skip = ['image', 'tts', 'live', 'embedding', 'audio', 'robotics', 'computer-use', 'native'];
+  const smartWords = ['pro', 'ultra', 'neon', 'deep'];
+  bool isSmart(String i) => smartWords.any(i.contains);
+  double version(String i) => double.tryParse(RegExp(r'gemini-(\d+(?:\.\d+)?)').firstMatch(i)?.group(1) ?? '') ?? 0;
+  final usable = ids.where((i) => i.startsWith('gemini') && !skip.any(i.contains)).toList()
+    ..sort((a, b) {
+      final v = version(b).compareTo(version(a));
+      if (v != 0) return v;
+      // Stable before preview/experimental, then shorter (base) names first.
+      int rank(String i) => RegExp(r'preview|exp').hasMatch(i) ? 1 : 0;
+      final r = rank(a).compareTo(rank(b));
+      return r != 0 ? r : a.length.compareTo(b.length);
+    });
+  final numbered = usable.where((i) => version(i) > 0).toList();
+  final alias = tier == AiTier.fast ? 'gemini-flash-latest' : 'gemini-pro-latest';
+  final newest = numbered.isEmpty ? 0 : version(numbered.first);
+  final gen = numbered.where((i) => version(i) == newest).toList();
+  String? inGen() => tier == AiTier.fast
+      ? gen.where((i) => !isSmart(i) && !i.contains('lite')).firstOrNull ?? gen.where((i) => !isSmart(i)).firstOrNull
+      : gen.where(isSmart).firstOrNull;
+  // The alias follows Google's current stable default (newer generations often
+  // start as busy previews); without it, the newest generation.
+  if (ids.contains(alias)) return alias;
+  return inGen() ??
+      usable.where((i) => tier == AiTier.fast ? !isSmart(i) : isSmart(i)).firstOrNull ??
+      usable.firstOrNull;
+}
+
+/// Other models of [p] to try when the chosen one is overloaded, best first.
+List<String> fallbackModels(AiProvider p, AiTier tier, String primary, List<AiModelInfo> models) {
+  final ids = models.map((m) => m.id).toSet();
+  final other = tier == AiTier.fast ? AiTier.smart : AiTier.fast;
+  final candidates = <String?>[
+    if (p == AiProvider.gemini) ...[
+      if (tier == AiTier.smart) 'gemini-flash-latest',
+      'gemini-flash-lite-latest',
+      if (tier == AiTier.fast) 'gemini-pro-latest',
+      recommendedModel(p, other, models),
+    ] else ...[
+      recommendedModel(p, other, models),
+      if (ids.isEmpty) defaultAiModels[p],
+    ],
+  ];
+  final out = <String>[];
+  for (final c in candidates) {
+    if (c == null || c == primary || out.contains(c)) continue;
+    // The '-latest' aliases are not always listed; everything else must be.
+    if (ids.isNotEmpty && !ids.contains(c) && !c.endsWith('-latest')) continue;
+    out.add(c);
+  }
+  return out;
 }
 
 const Map<AiProvider, String> defaultAiModels = {
@@ -85,9 +138,21 @@ class AiRequest {
 }
 
 class AiException implements Exception {
-  const AiException(this.message);
+  const AiException(this.message, {this.status, this.transient = false});
 
   final String message;
+  final int? status;
+
+  /// Overloaded / rate limited / timed out: worth retrying or another model.
+  final bool transient;
+
+  /// Classifies a provider error.
+  factory AiException.http(int status, String message) => AiException(
+        message,
+        status: status,
+        transient: const {408, 429, 500, 502, 503, 504, 529}.contains(status) ||
+            RegExp(r'overloaded|high demand|unavailable|try again', caseSensitive: false).hasMatch(message),
+      );
 
   @override
   String toString() => message;

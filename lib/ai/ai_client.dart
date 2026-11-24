@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -45,18 +46,25 @@ class DirectAiClient {
   }
 
   Future<Map<String, dynamic>> _post(Uri url, Map<String, String> headers, Object body) async {
-    final res = await _http
-        .post(url, headers: {'content-type': 'application/json', ...headers}, body: jsonEncode(body))
-        .timeout(const Duration(seconds: 120));
+    final http.Response res;
+    try {
+      res = await _http
+          .post(url, headers: {'content-type': 'application/json', ...headers}, body: jsonEncode(body))
+          .timeout(const Duration(seconds: 120));
+    } on TimeoutException {
+      throw const AiException('timeout', transient: true);
+    } on http.ClientException catch (e) {
+      throw AiException(e.message, transient: true);
+    }
     Map<String, dynamic> json;
     try {
       json = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     } catch (_) {
-      throw AiException('HTTP ${res.statusCode}');
+      throw AiException.http(res.statusCode, 'HTTP ${res.statusCode}');
     }
     if (res.statusCode >= 400) {
       final err = json['error'];
-      throw AiException(err is Map ? '${err['message'] ?? err}' : 'HTTP ${res.statusCode}');
+      throw AiException.http(res.statusCode, err is Map ? '${err['message'] ?? err}' : 'HTTP ${res.statusCode}');
     }
     return json;
   }
@@ -121,8 +129,15 @@ class DirectAiClient {
         'generationConfig': {if (r.schema != null) 'responseMimeType': 'application/json'},
       },
     );
-    final parts = ((json['candidates'] as List?)?.firstOrNull as Map?)?['content']?['parts'] as List? ?? const [];
-    return parts.map((p) => (p as Map)['text'] ?? '').join();
+    final cand = (json['candidates'] as List?)?.firstOrNull as Map?;
+    final parts = cand?['content']?['parts'] as List? ?? const [];
+    // Thought summaries are not part of the answer.
+    final text = parts.where((p) => p is Map && p['thought'] != true).map((p) => (p as Map)['text'] ?? '').join();
+    if (text.trim().isEmpty) {
+      final why = cand?['finishReason'] ?? json['promptFeedback']?['blockReason'] ?? 'empty';
+      throw AiException('Gemini: $why', transient: why == 'empty' || why == 'MAX_TOKENS');
+    }
+    return text;
   }
 
   Future<String> _openai(DeviceAiKey key, AiRequest r) async {

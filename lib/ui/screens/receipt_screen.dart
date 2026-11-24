@@ -39,7 +39,15 @@ class ReceiptDraftLine {
 enum ReceiptStage { idle, preparing, working, parsing, done, error }
 
 class ReceiptJob {
-  const ReceiptJob({this.stage = ReceiptStage.idle, this.startedAt, this.lines, this.error, this.saving = false});
+  const ReceiptJob({
+    this.stage = ReceiptStage.idle,
+    this.startedAt,
+    this.lines,
+    this.error,
+    this.saving = false,
+    this.retry,
+    this.canRetry = false,
+  });
 
   final ReceiptStage stage;
   final DateTime? startedAt;
@@ -48,6 +56,12 @@ class ReceiptJob {
   /// 'empty', 'no-provider' or the AI error message.
   final String? error;
   final bool saving;
+
+  /// Set while the AI is retried or another model is tried.
+  final AiRetryNote? retry;
+
+  /// After an error: the last photo can be sent again.
+  final bool canRetry;
 
   bool get busy => stage == ReceiptStage.preparing || stage == ReceiptStage.working || stage == ReceiptStage.parsing;
 }
@@ -67,26 +81,48 @@ class ReceiptJobNotifier extends Notifier<ReceiptJob> {
   void saving(bool v) =>
       state = ReceiptJob(stage: state.stage, startedAt: state.startedAt, lines: state.lines, error: state.error, saving: v);
 
+  Uint8List? _lastPhoto;
+  String _lastLang = 'cs';
+
+  /// Sends the last photo again (after an error).
+  Future<void> retry() async {
+    final bytes = _lastPhoto;
+    if (bytes != null && !state.busy) await _run(bytes, _lastLang);
+  }
+
   Future<void> start(XFile photo, String lang) async {
     if (state.busy) return;
+    state = ReceiptJob(stage: ReceiptStage.preparing, startedAt: DateTime.now());
+    try {
+      await _run(await photo.readAsBytes(), lang);
+    } catch (e) {
+      state = ReceiptJob(stage: ReceiptStage.error, error: '$e');
+    }
+  }
+
+  Future<void> _run(Uint8List bytes, String lang) async {
+    _lastPhoto = bytes;
+    _lastLang = lang;
     final ai = ref.read(aiServiceProvider);
     if (!ai.enabledFor(AiFeature.receipt)) {
       state = const ReceiptJob(stage: ReceiptStage.error, error: 'no-provider');
       return;
     }
     final started = DateTime.now();
-    state = ReceiptJob(stage: ReceiptStage.preparing, startedAt: started);
     try {
-      final bytes = await photo.readAsBytes();
       state = ReceiptJob(stage: ReceiptStage.working, startedAt: started);
-      final text = await ai.run(AiFeature.receipt, receiptRequest(AiImage(bytes), lang));
+      final text = await ai.run(
+        AiFeature.receipt,
+        receiptRequest(AiImage(bytes), lang),
+        onRetry: (note) => state = ReceiptJob(stage: ReceiptStage.working, startedAt: DateTime.now(), retry: note),
+      );
       state = ReceiptJob(stage: ReceiptStage.parsing, startedAt: started);
       final lines = parseReceipt(text);
       state = lines.isEmpty
-          ? const ReceiptJob(stage: ReceiptStage.error, error: 'empty')
+          ? const ReceiptJob(stage: ReceiptStage.error, error: 'empty', canRetry: true)
           : ReceiptJob(stage: ReceiptStage.done, lines: [for (final r in lines) ReceiptDraftLine(r)]);
     } catch (e) {
-      state = ReceiptJob(stage: ReceiptStage.error, error: '$e');
+      state = ReceiptJob(stage: ReceiptStage.error, error: '$e', canRetry: true);
     }
   }
 }
@@ -175,7 +211,13 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> with SingleTicker
         final (value, label) = switch (job.stage) {
           ReceiptStage.preparing => (0.05, l.receiptStepPhoto),
           ReceiptStage.working when secs < 2 => (0.08 + secs * 0.02, l.receiptStepSending),
-          ReceiptStage.working => (0.12 + 0.8 * (1 - exp(-(secs - 2) / 14)), l.receiptStepReading(secs.round())),
+          ReceiptStage.working => (
+              0.12 + 0.8 * (1 - exp(-(secs - 2) / 14)),
+              job.retry == null
+                  ? l.receiptStepReading(secs.round())
+                  : '${job.retry!.retry > 0 ? l.aiRetrying : l.aiTryingOther(job.retry!.attempt.model ?? aiProviderNames[job.retry!.attempt.provider]!)}'
+                      '\n${l.receiptStepReading(secs.round())}'
+            ),
           _ => (0.95, l.receiptStepParsing),
         };
         return Padding(
@@ -228,6 +270,14 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> with SingleTicker
               Text(error, textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.error)),
             ],
             const SizedBox(height: 24),
+            if (job.canRetry) ...[
+              FilledButton.tonalIcon(
+                onPressed: () => ref.read(receiptJobProvider.notifier).retry(),
+                icon: const Icon(Icons.refresh),
+                label: Text(l.receiptRetry),
+              ),
+              const SizedBox(height: 8),
+            ],
             FilledButton.icon(
               onPressed: () => _pick(ImageSource.camera),
               icon: const Icon(Icons.photo_camera),

@@ -516,5 +516,15 @@
   "aiTierFast": "Stačí rychlý a levný model",
   "aiTierSmart": "Doporučujeme chytřejší model",
   "aiNoKeyYet": "Nejdřív přidejte klíč nahoře.",
-  "aiProvider": "Poskytovatel"
+  "aiProvider": "Poskytovatel",
+  "aiRetrying": "Model je přetížený, zkouším to znovu…",
+  "aiTryingOther": "Model je přetížený, zkouším {model}…",
+  "@aiTryingOther": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptRetry": "Zkusit znovu stejnou fotku"
 }

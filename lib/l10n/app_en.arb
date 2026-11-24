@@ -315,5 +315,15 @@
   "aiTierFast": "A fast, cheap model is enough",
   "aiTierSmart": "A smarter model is recommended",
   "aiNoKeyYet": "Add a key above first.",
-  "aiProvider": "Provider"
+  "aiProvider": "Provider",
+  "aiRetrying": "The model is overloaded, trying again…",
+  "aiTryingOther": "The model is overloaded, trying {model}…",
+  "@aiTryingOther": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "receiptRetry": "Try the same photo again"
 }

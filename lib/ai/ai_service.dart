@@ -7,6 +7,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../app_state.dart';
 import 'ai_client.dart';
 import 'ai_models.dart';
+import 'ai_retry.dart';
+
+export 'ai_retry.dart' show AiRetryNote;
 
 /// Per-device AI settings: keys stored on this device and which provider
 /// each feature uses. Shared household keys come from the household document.
@@ -196,10 +199,39 @@ class AiService {
     }
   }
 
-  Future<String> run(AiFeature f, AiRequest r) async {
+  /// The chosen provider/model first, then other models of the same
+  /// provider, then the other providers with a key.
+  List<AiAttempt> attemptsFor(AiFeature f) {
     final p = providerFor(f);
-    if (p == null) throw const AiException('no-provider');
-    final model = modelFor(f);
+    if (p == null) return const [];
+    final s = _ref.read(aiSettingsProvider);
+    final primary = modelFor(f);
+    final out = <AiAttempt>[(provider: p, model: primary)];
+    if (primary != null) {
+      for (final m in fallbackModels(p, tierOf(f), primary, s.models[p] ?? const [])) {
+        out.add((provider: p, model: m));
+      }
+    }
+    for (final other in availableProviders.where((x) => x != p)) {
+      out.add((
+        provider: other,
+        model: recommendedModel(other, tierOf(f), s.models[other] ?? const []) ??
+            s.deviceKeys[other]?.model ??
+            _ref.read(activeHouseholdProvider)?.aiShared[other.name],
+      ));
+    }
+    return out;
+  }
+
+  /// Runs [r] for [f]; when the model is overloaded it retries and falls back
+  /// to other models / providers ([onRetry] tells the UI what is going on).
+  Future<String> run(AiFeature f, AiRequest r, {void Function(AiRetryNote note)? onRetry}) {
+    final attempts = attemptsFor(f);
+    if (attempts.isEmpty) throw const AiException('no-provider');
+    return runWithFallback(attempts, (a) => _runOnce(a.provider, a.model, r), onRetry: onRetry);
+  }
+
+  Future<String> _runOnce(AiProvider p, String? model, AiRequest r) async {
     final key = _ref.read(aiSettingsProvider).deviceKeys[p];
     if (key != null) return _direct.run(p, DeviceAiKey(key: key.key, model: model ?? key.model), r);
     final hid = _ref.read(activeHouseholdProvider)?.id;
@@ -217,7 +249,13 @@ class AiService {
       });
       return res.data['text'] as String? ?? '';
     } on FirebaseFunctionsException catch (e) {
-      throw AiException(e.message ?? e.code);
+      final msg = e.message ?? e.code;
+      throw AiException(
+        msg,
+        transient: e.code == 'deadline-exceeded' ||
+            e.code == 'resource-exhausted' ||
+            RegExp(r'overloaded|high demand|unavailable|try again|HTTP (429|5\d\d)', caseSensitive: false).hasMatch(msg),
+      );
     }
   }
 

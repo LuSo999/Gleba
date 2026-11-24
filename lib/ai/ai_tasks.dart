@@ -48,15 +48,21 @@ class ReceiptLine {
 AiRequest receiptRequest(AiImage photo, String lang) => AiRequest(
       images: [photo],
       prompt: '''
-This is a photo of a shopping receipt. List every purchased line item.
+This is a photo or screenshot of a shopping receipt (often Czech: Lidl, Albert, Billa, Kaufland,
+Penny, Tesco, Globus, Rohlik…). It may be long – read it top to bottom and list EVERY purchased line item.
 - "name": a clear, human-readable product name in ${_lang(lang)}. Receipts abbreviate heavily
-  (e.g. "JOG.BIL.OLM 150G" means a white Olma yogurt 150 g) – expand the abbreviation, keep the brand.
+  (e.g. "JOG.BIL.OLM 150G" means a white Olma yogurt 150 g, "Čist.vlhč.ubr." means wet wipes)
+  – expand the abbreviation, keep the brand. Drop leading article numbers (e.g. "514215 Aut.deštník" → "Automatický deštník").
 - "quantity" and "unit": how many pieces (unit "ks") or the weight/volume for loose goods (g, kg, ml, l).
-  "2 x 19,90" means quantity 2.
-- "price": total price paid for the line, as a number; 0 if unreadable.
-- "isFood": false for non-food (drugstore, bags, deposits, discounts).
+  The multiplier is often on the next line: "6 ks x 3,90 Kč/ks" means quantity 6 of the item above;
+  "2 x 19,90" means quantity 2; "M 0,140 kg x 259,00 Kč/kg" means 0.14 kg.
+  If the name contains a pack size (e.g. "Šlehačka 250 ml"), keep it in the name and count pieces.
+- "price": total price paid for the line after its discounts, as a number (use "Cena po slevě" /
+  "price after discount" when present); 0 if unreadable.
+- "isFood": false for non-food (drugstore, cosmetics, household goods, bags, deposits).
 - "category": the closest of: ${_categoryIds.join(', ')}.
-Skip discount lines, totals, VAT and payment lines.''',
+Discount lines ("Lidl Plus sleva", "4+2 zdarma", "Sleva", negative amounts), "Cena po slevě", warranty notes
+("Záruka: 3 roky"), totals ("K PLATBĚ", "Celkem"), VAT, payment, loyalty points and store info are NOT items.''',
       schema: _obj({
         'store': {'type': 'string'},
         'items': {

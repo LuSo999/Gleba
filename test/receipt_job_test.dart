@@ -18,7 +18,7 @@ class _SlowAi extends AiService {
   bool enabledFor(AiFeature f) => true;
 
   @override
-  Future<String> run(AiFeature f, AiRequest r) => answer.future;
+  Future<String> run(AiFeature f, AiRequest r, {void Function(AiRetryNote note)? onRetry}) => answer.future;
 }
 
 void main() {

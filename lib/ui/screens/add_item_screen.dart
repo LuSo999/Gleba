@@ -157,7 +157,13 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     if (candidates.isEmpty && ai.enabledFor(AiFeature.date)) {
       messenger.showSnackBar(SnackBar(content: Text(l.aiReadingDate)));
       try {
-        final res = parseDate(await ai.run(AiFeature.date, dateRequest(AiImage(await photo.readAsBytes()), DateTime.now())));
+        final res = parseDate(await ai.run(
+          AiFeature.date,
+          dateRequest(AiImage(await photo.readAsBytes()), DateTime.now()),
+          onRetry: (n) => messenger.showSnackBar(SnackBar(
+            content: Text(n.retry > 0 ? l.aiRetrying : l.aiTryingOther(n.attempt.model ?? n.attempt.provider.name)),
+          )),
+        ));
         if (res != null) {
           candidates = [ExpiryCandidate(res.date, 100, dateType: res.type, matched: 'AI')];
         }
