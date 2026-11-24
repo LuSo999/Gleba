@@ -1,6 +1,7 @@
 /// Household statistics computed from the history (pure, testable).
 library;
 
+import 'eaters.dart';
 import 'history.dart';
 import 'models.dart';
 
@@ -42,7 +43,11 @@ class Stats {
     required this.products,
     required this.members,
     required this.lateDiscards,
+    this.eaters = const [],
   });
+
+  /// Who ate what (shares from "who ate it?").
+  final List<EaterTotal> eaters;
 
   final int eaten;
   final int discarded;
@@ -151,6 +156,7 @@ Stats computeStats(List<HistoryEvent> events, DateTime now, {int? days}) {
     members: members.values.where((m) => m.name != '?' || m.added + m.eaten + m.discarded > 0).toList()
       ..sort((a, b) => (b.added + b.eaten + b.discarded).compareTo(a.added + a.eaten + a.discarded)),
     lateDiscards: late,
+    eaters: eaterTotals(inPeriod),
   );
 }
 

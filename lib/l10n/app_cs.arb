@@ -583,5 +583,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "invLow": "Dochází",
+  "runningLow": "dochází",
+  "markRunningLow": "Dochází",
+  "unmarkRunningLow": "Už nedochází",
+  "statsWhoAte": "Kdo co snědl"
 }

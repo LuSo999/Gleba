@@ -5,7 +5,10 @@ import '../../app_state.dart';
 import '../../domain/notification_rules.dart';
 import '../../domain/shelf_life.dart';
 import '../../domain/stats.dart';
+import '../../domain/eaters.dart';
+import '../../domain/history.dart' show othersEater;
 import '../labels.dart';
+import '../widgets/who_ate_sheet.dart';
 
 /// Chart colours: validated categorical slots 1 (blue) and 2 (orange), each
 /// stepped for its surface (see the dataviz palette). Text never uses them.
@@ -154,6 +157,11 @@ class StatsScreen extends ConsumerWidget {
         _SectionTitle(l.statsTopProducts),
         for (final p in s.products)
           ListTile(dense: true, contentPadding: EdgeInsets.zero, title: Text(p.key), trailing: Text('${p.value}×')),
+      ],
+      if (s.eaters.length > 1 || s.eaters.any((e) => e.id == othersEater)) ...[
+        const SizedBox(height: 16),
+        _SectionTitle(l.statsWhoAte),
+        _WhoAteBars(totals: s.eaters),
       ],
       if (s.members.length > 1 || (s.members.isNotEmpty && s.members.first.name != '?')) ...[
         const SizedBox(height: 16),
@@ -505,5 +513,60 @@ class _TipCard extends ConsumerWidget {
         ]),
       ),
     );
+  }
+}
+
+/// Who ate how much: one bar per person in their "who ate it?" colour.
+class _WhoAteBars extends ConsumerWidget {
+  const _WhoAteBars({required this.totals});
+
+  final List<EaterTotal> totals;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final h = ref.watch(activeHouseholdProvider);
+    final uid = ref.watch(userProvider).value?.uid;
+    if (h == null || uid == null) return const SizedBox();
+    final people = {for (final e in eatersOf(h, uid, context.l)) e.id: e};
+    final max = totals.first.items;
+    String fmt(double v) => v == v.roundToDouble() ? '${v.round()}' : v.toStringAsFixed(1);
+    return Column(children: [
+      for (final t in totals)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(children: [
+            SizedBox(
+              width: 96,
+              child: Text(people[t.id]?.name ?? context.l.whoMember,
+                  overflow: TextOverflow.ellipsis, maxLines: 1, style: theme.textTheme.bodySmall),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (_, box) => Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    width: (box.maxWidth - 8) * t.items / max + 2,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: people[t.id]?.color ?? theme.colorScheme.outline,
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 96,
+              child: Text(
+                [ '${fmt(t.items)}×', if (t.kcal > 0) '${t.kcal.round()} kcal'].join(' · '),
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ),
+          ]),
+        ),
+    ]);
   }
 }

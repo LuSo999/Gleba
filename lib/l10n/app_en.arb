@@ -382,5 +382,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "invLow": "Running low",
+  "runningLow": "running low",
+  "markRunningLow": "Running low",
+  "unmarkRunningLow": "Not running low",
+  "statsWhoAte": "Who ate what"
 }

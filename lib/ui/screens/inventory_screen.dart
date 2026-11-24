@@ -11,9 +11,10 @@ import '../fridge/fridge_view.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/burst.dart';
-import '../widgets/item_sheet.dart' show restock;
+import '../widgets/item_sheet.dart' show ItemActions, restock;
+import '../widgets/who_ate_sheet.dart';
 
-enum _Act { keep, eaten, thrown, part, deleted }
+enum _Act { keep, eaten, thrown, part, deleted, low }
 
 class _Done {
   _Done(this.item, this.act, {this.eventId});
@@ -81,6 +82,20 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
     if (h == null || user == null) return;
     final repo = ref.read(repositoryProvider);
 
+    // Eaten as a whole: who ate it (households with more members).
+    Map<String, double>? eaters;
+    if (act == _Act.eaten) {
+      final actions = ItemActions.of(context, ref);
+      if (actions != null && actions.asksWhoAte) {
+        eaters = await showWhoAteSheet(context,
+            household: h, myUid: user.uid, title: item.name, grams: item.nutrition == null ? null : gramsEaten(item, item.quantity));
+        if (eaters == null) {
+          setState(() => _drag = Offset.zero);
+          return;
+        }
+      }
+    }
+
     double? partQty;
     if (act == _Act.part) {
       partQty = await _askRemaining(item);
@@ -94,7 +109,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
     if (!mounted) return;
     final size = MediaQuery.sizeOf(context);
     final target = switch (act) {
-      _Act.keep => Offset(size.width * 1.3, _drag.dy),
+      _Act.keep || _Act.low => Offset(size.width * 1.3, _drag.dy),
       _Act.eaten => Offset(-size.width * 1.3, _drag.dy),
       _Act.part => Offset(_drag.dx, -size.height),
       _Act.thrown || _Act.deleted => Offset(0, size.height),
@@ -107,8 +122,10 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
     switch (act) {
       case _Act.keep:
         await repo.updateItem(h.id, item.copyWith(checkedAt: DateTime.now()));
+      case _Act.low:
+        await repo.updateItem(h.id, item.copyWith(checkedAt: DateTime.now(), runningLow: true));
       case _Act.eaten:
-        eventId = await repo.finishItem(h.id, item, ItemStatus.consumed, user);
+        eventId = await repo.finishItem(h.id, item, ItemStatus.consumed, user, eaters: eaters);
       case _Act.thrown:
         eventId = await repo.finishItem(h.id, item, ItemStatus.discarded, user);
       case _Act.deleted:
@@ -117,7 +134,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
         final used = item.quantity - partQty!;
         if (used > 0) eventId = await repo.finishItem(h.id, item, ItemStatus.consumed, user, quantity: used);
     }
-    if (act != _Act.keep && act != _Act.deleted) await restock(repo, h.id, user);
+    if (act != _Act.keep && act != _Act.low && act != _Act.deleted) await restock(repo, h.id, user);
     if (!mounted) return;
     setState(() {
       _done.add(_Done(item, act, eventId: eventId));
@@ -253,6 +270,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                     _ActionButton(emoji: '🗑️', label: l.invThrown, onTap: () => _act(_Act.thrown)),
                     _ActionButton(emoji: '😋', label: l.invEaten, onTap: () => _act(_Act.eaten)),
                     _ActionButton(emoji: '½', label: l.invPart, onTap: () => _act(_Act.part)),
+                    _ActionButton(emoji: '📉', label: l.invLow, onTap: () => _act(_Act.low)),
                     _ActionButton(emoji: '✅', label: l.invStillThere, onTap: () => _act(_Act.keep), primary: true),
                   ],
                 ),
@@ -303,6 +321,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> with SingleTi
                                   _Act.part => '½ ${l.invPart}',
                                   _Act.thrown => '🗑️',
                                   _Act.deleted => '❌ ${l.histDeleted}',
+                                  _Act.low => '📉 ${l.invLow}',
                                 },
                               ),
                             ),

@@ -346,6 +346,7 @@ class _ItemSheet extends ConsumerWidget {
                 ),
                 Chip(label: Text('${locationLabel(l, location)} · ${_qty(item)}')),
                 if (item.isOpened) Chip(avatar: const Text('🔓'), label: Text(l.opened)),
+                if (item.runningLow) Chip(avatar: const Text('📉'), label: Text(l.runningLow)),
                 if (item.isFrozen)
                   Chip(avatar: const Text('❄️'), label: Text(l.frozenSince(formatDate(context, item.frozenAt!)))),
               ],
@@ -402,6 +403,11 @@ class _ItemSheet extends ConsumerWidget {
                     icon: const Text('❄️'),
                     label: Text(l.freeze),
                   ),
+                TextButton.icon(
+                  onPressed: () => update(item.copyWith(runningLow: !item.runningLow), HistoryType.edited),
+                  icon: const Text('📉'),
+                  label: Text(item.runningLow ? l.unmarkRunningLow : l.markRunningLow),
+                ),
                 TextButton.icon(
                   onPressed: () async {
                     final d = await showDatePicker(

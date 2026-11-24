@@ -93,6 +93,55 @@ void main() {
     expect(rules.single.targetId, anyOf('milk', 'milkUht'));
   });
 
+  testWidgets('who ate it: two people split the butter', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    final auth = DemoAuthService();
+    final repo = DemoRepository(partner: true);
+    await auth.signInWithGoogle();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        isDemoProvider.overrideWithValue(true),
+        authServiceProvider.overrideWithValue(auth),
+        repositoryProvider.overrideWithValue(repo),
+      ],
+      child: const GlebaApp(),
+    ));
+    await settle(tester);
+    await tester.tap(find.text('Spotřebuj nejdřív'));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).first);
+    final tile = find.ancestor(of: find.text('Máslo'), matching: find.byType(ListTile));
+    await tester.ensureVisible(tile);
+    await settle(tester);
+    await tester.tapAt(tester.getTopLeft(tile) + const Offset(30, 20));
+    await settle(tester);
+    await tester.tap(find.text('Došlo'));
+    await settle(tester);
+
+    expect(find.text('Kdo snědl?'), findsOneWidget);
+    expect(find.text('Já'), findsOneWidget);
+    expect(find.text('Ostatní'), findsOneWidget);
+    await tester.tap(find.text('Ája'));
+    await settle(tester);
+    expect(find.text('50 %'), findsNWidgets(2));
+    await tester.drag(find.byKey(const ValueKey('cut0')), const Offset(60, 0));
+    await settle(tester);
+    await tester.tap(find.text('Hotovo'));
+    await settle(tester);
+
+    expect(find.text('Snězeno: Máslo'), findsOneWidget);
+    final e = (await repo.fetchEvents('home')).first;
+    expect(e.type, HistoryType.consumed);
+    expect(e.eaters!.keys, ['demo', 'partner']);
+    expect(e.eaters!['demo']!, greaterThan(0.5));
+    expect(e.eaters!.values.reduce((a, b) => a + b), closeTo(1, 0.001));
+  });
+
   testWidgets('an item added by mistake can be deleted and undone', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.5;
