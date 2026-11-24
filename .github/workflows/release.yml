@@ -18,6 +18,13 @@ jobs:
   bundle:
     runs-on: ubuntu-latest
     steps:
+      # The Android build needs more disk than the runner has free.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL \
+            /usr/local/lib/android/sdk/ndk/2* /usr/local/.ghcup /usr/share/swift || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4

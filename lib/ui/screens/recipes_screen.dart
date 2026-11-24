@@ -9,6 +9,7 @@ import '../../app_state.dart';
 import '../../domain/freshness.dart';
 import '../../domain/shelf_life.dart';
 import '../labels.dart';
+import '../links.dart';
 import 'receipt_screen.dart' show AiThinking;
 
 /// Pick ingredients (urgent ones preselected) → AI suggests recipes,
@@ -114,7 +115,17 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: SelectableText(_result!.replaceAll('**', '').replaceAll(RegExp(r'^#+\s*', multiLine: true), '')),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  SelectableText(_result!.replaceAll('**', '').replaceAll(RegExp(r'^#+\s*', multiLine: true), '')),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => reportAiAnswer(_result!),
+                      icon: const Icon(Icons.flag_outlined, size: 18),
+                      label: Text(l.aiReport),
+                    ),
+                  ),
+                ]),
               ),
             ),
         ],

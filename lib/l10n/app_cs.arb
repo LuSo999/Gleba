@@ -605,5 +605,6 @@
   "bulkEat": "Snědli jsme",
   "bulkCook": "Uvařit jídlo",
   "bulkThrow": "Vyhodit",
-  "bulkDelete": "Smazat"
+  "bulkDelete": "Smazat",
+  "aiReport": "Nahlásit nevhodnou odpověď"
 }

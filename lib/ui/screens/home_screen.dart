@@ -127,7 +127,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: Column(
         children: [
           // Kept out of the AppBar so long text can never squash the toolbar.
-          if (isDemo)
+          if (isDemo && !const bool.fromEnvironment('GLEBA_DEMO'))
             Container(
               width: double.infinity,
               color: Theme.of(context).colorScheme.tertiaryContainer,

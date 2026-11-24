@@ -404,5 +404,6 @@
   "bulkEat": "We ate it",
   "bulkCook": "Cook a dish",
   "bulkThrow": "Throw away",
-  "bulkDelete": "Delete"
+  "bulkDelete": "Delete",
+  "aiReport": "Report an inappropriate answer"
 }

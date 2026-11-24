@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gleba – zásady ochrany soukromí</title>
+<link rel="icon" href="favicon.png">
+<style>
+  :root { --bg:#f1eaf7; --card:#fff; --ink:#1d2329; --muted:#5d6872; --accent:#6b3fa0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1a1320; --card:#241b2c; --ink:#ece6f2; --muted:#b2a8bd; --accent:#c9a8ef; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:32px max(16px, env(safe-area-inset-left)); }
+  article { background:var(--card); border-radius:20px; padding:28px; margin-bottom:24px; }
+  h1 { margin:0 0 4px; font-size:1.8rem; } h2 { margin:28px 0 6px; font-size:1.15rem; color:var(--accent); }
+  .meta, small { color:var(--muted); } a { color:var(--accent); } ul { padding-left:20px; }
+  nav { display:flex; gap:12px; margin-bottom:16px; }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="#cs">Česky</a><a href="#en">English</a><a href="delete-account.html">Smazání účtu / Delete account</a></nav>
+
+<article id="cs">
+<h1>Zásady ochrany soukromí</h1>
+<p class="meta">Aplikace Gleba (Android a web gleba-e9a60.web.app) · platné od 24. 11. 2026</p>
+<p>Gleba hlídá, co máte v lednici, mrazáku a spíži a kdy to projde. Sbírá jen to, co k tomu potřebuje. Nemá reklamy, analytiku ani sledování a data nikomu neprodává.</p>
+
+<h2>Jaké údaje zpracováváme</h2>
+<ul>
+  <li><b>Účet:</b> jméno, e-mail a identifikátor z přihlášení přes Google nebo e-mailem (Firebase Authentication).</li>
+  <li><b>Data domácnosti:</b> potraviny (název, kategorie, datum spotřeby, množství, umístění, cena, nutriční hodnoty), historie (kdo co přidal, snědl či vyhodil, a jak se o jídlo rozdělil), nákupní seznam, jídelníček a jména členů. Vidí je jen členové dané domácnosti.</li>
+  <li><b>Nastavení upozornění</b> a identifikátor zařízení pro push notifikace (Firebase Cloud Messaging).</li>
+  <li><b>Fotky</b> (čárový kód, datum, účtenka, obal) se zpracují v telefonu. Na server se neukládají. Pokud použijete AI, pošle se fotka přímo vámi zvolenému poskytovateli (viz níže).</li>
+</ul>
+
+<h2>Kam data odcházejí</h2>
+<ul>
+  <li><b>Google Firebase</b> (Google Ireland Ltd.): ukládání dat, přihlášení, notifikace a serverové funkce.</li>
+  <li><b>Open Food Facts</b>: pro dohledání produktu se posílá jen čárový kód. Pokud to v nastavení povolíte, odešle se nový produkt (název, značka, kategorie) do veřejné databáze Open Food Facts, anonymně a bez údajů o vás.</li>
+  <li><b>Poskytovatelé AI</b> (Google Gemini, OpenAI, Anthropic), jen pokud si sami zadáte vlastní API klíč. Fotka účtenky či obalu nebo text požadavku jde poskytovateli, kterého si vyberete, a řídí se jeho podmínkami. Klíč zůstává ve vašem zařízení (šifrované úložiště). Pokud ho sdílíte s domácností, je uložen jen na serveru a ostatní členové ho nikdy nevidí.</li>
+  <li><b>Health Connect</b> (Android), jen pokud ho zapnete: Gleba do něj zapisuje nutriční hodnoty snězeného jídla (vaši část). Žádná zdravotní data nečte.</li>
+</ul>
+
+<h2>Jak dlouho</h2>
+<p>Data uchováváme, dokud máte účet. Smazáním účtu (Nastavení → Smazat účet) se smaže účet, vaše nastavení a domácnosti, ve kterých jste byli sami. Ve sdílených domácnostech zůstanou potraviny a historie ostatním členům, vaše jméno se odstraní. Podrobnosti najdete na stránce <a href="delete-account.html">Smazání účtu</a>.</p>
+
+<h2>Vaše práva</h2>
+<p>Máte právo na přístup k údajům, jejich opravu, výmaz, omezení zpracování a přenositelnost a právo podat stížnost u Úřadu pro ochranu osobních údajů (uoou.cz). Většinu dat vidíte a upravíte přímo v aplikaci. S čímkoli dalším napište.</p>
+
+<h2>Děti</h2>
+<p>Aplikace není určena dětem mladším 13 let.</p>
+
+<h2>Kontakt</h2>
+<p>Provozovatel aplikace Gleba: <a href="mailto:lubomirsoustruznik@email.cz">lubomirsoustruznik@email.cz</a></p>
+</article>
+
+<article id="en">
+<h1>Privacy policy</h1>
+<p class="meta">Gleba app (Android and web gleba-e9a60.web.app) · effective 24 November 2026</p>
+<p>Gleba keeps track of what is in your fridge, freezer and pantry and when it expires. It collects only what it needs for that. There are no ads, no analytics and no tracking, and your data is never sold.</p>
+
+<h2>What we process</h2>
+<ul>
+  <li><b>Account:</b> name, email and the identifier from signing in with Google or email (Firebase Authentication).</li>
+  <li><b>Household data:</b> food items (name, category, expiry date, quantity, place, price, nutrition), history (who added, ate or threw away what, and how food was shared), shopping list, meal plan and member names. Only members of that household can see them.</li>
+  <li><b>Notification settings</b> and a device identifier for push notifications (Firebase Cloud Messaging).</li>
+  <li><b>Photos</b> (barcode, date, receipt, package) are processed on the phone and not stored on the server. If you use AI, the photo goes directly to the provider you chose (see below).</li>
+</ul>
+
+<h2>Where data goes</h2>
+<ul>
+  <li><b>Google Firebase</b> (Google Ireland Ltd.): storage, sign-in, notifications and server functions.</li>
+  <li><b>Open Food Facts</b>: only the barcode is sent to look a product up. If you allow it in settings, a new product (name, brand, category) is added to the public Open Food Facts database anonymously, with no data about you.</li>
+  <li><b>AI providers</b> (Google Gemini, OpenAI, Anthropic), only if you enter your own API key. The receipt or package photo or the request text goes to the provider you choose under its terms. The key stays on your device (encrypted storage). If you share it with your household, it is stored only on the server and other members never see it.</li>
+  <li><b>Health Connect</b> (Android), only if you turn it on: Gleba writes the nutrition of food you ate (your share). It never reads health data.</li>
+</ul>
+
+<h2>Retention</h2>
+<p>Data is kept while you have an account. Deleting the account (Settings → Delete account) removes the account, your settings and households where you were the only member. In shared households the food and history stay for the other members and your name is removed. See <a href="delete-account.html">Delete account</a>.</p>
+
+<h2>Your rights</h2>
+<p>You have the right to access, correct, erase, restrict and port your data and to complain to your data protection authority. Most data can be viewed and edited in the app. For anything else, email us.</p>
+
+<h2>Children</h2>
+<p>The app is not intended for children under 13.</p>
+
+<h2>Contact</h2>
+<p>Operator of the Gleba app: <a href="mailto:lubomirsoustruznik@email.cz">lubomirsoustruznik@email.cz</a></p>
+</article>
+</main>
+</body>
+</html>

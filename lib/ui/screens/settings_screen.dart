@@ -7,6 +7,7 @@ import '../../app_state.dart';
 import '../../services/health_service.dart';
 import '../../services/push_service.dart';
 import '../labels.dart';
+import '../links.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -113,6 +114,8 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.privacy_tip_outlined),
             title: Text(l.privacyPolicy),
             subtitle: const Text('gleba-e9a60.web.app/privacy.html'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: openPrivacyPolicy,
           ),
           const Divider(),
           ListTile(

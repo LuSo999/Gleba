@@ -297,7 +297,7 @@ export const deleteAccount = onCall({ region: REGION, timeoutSeconds: 120 }, asy
     if (members.length <= 1) {
       await db.recursiveDelete(h.ref); // nobody else uses it
     } else {
-      await h.ref.update({ memberIds: FieldValue.arrayRemove(uid) });
+      await h.ref.update({ memberIds: FieldValue.arrayRemove(uid), [`memberNames.${uid}`]: FieldValue.delete() });
     }
   }
   await db.recursiveDelete(db.doc(`users/${uid}`));
