@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
@@ -12,9 +12,9 @@ import '../labels.dart';
 import '../theme.dart';
 
 /// The home screen illustration: a fridge with the freezer below it and a
-/// pantry cabinet. Each compartment opens with an animation and shows its food
-/// on shelves, coloured by freshness.
-class FridgeView extends ConsumerWidget {
+/// pantry cabinet. Tapping one opens its door while the "camera" moves in,
+/// then the inside opens full screen (CompartmentScreen).
+class FridgeView extends ConsumerStatefulWidget {
   const FridgeView({super.key, required this.items, required this.onItemTap});
 
   final List<PantryItem> items;
@@ -26,9 +26,39 @@ class FridgeView extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FridgeView> createState() => _FridgeViewState();
+}
+
+class _FridgeViewState extends ConsumerState<FridgeView> with SingleTickerProviderStateMixin {
+  late final _zoom = AnimationController(vsync: this);
+  final _content = GlobalKey();
+  Alignment _origin = Alignment.center;
+
+  @override
+  void dispose() {
+    _zoom.dispose();
+    super.dispose();
+  }
+
+  /// Camera in → the inside full screen → camera back out.
+  Future<void> _open(LocationType type, GlobalKey compartment) async {
+    final s = ref.read(settingsProvider);
+    final box = _content.currentContext?.findRenderObject() as RenderBox?;
+    final target = compartment.currentContext?.findRenderObject() as RenderBox?;
+    if (s.animations && box != null && target != null) {
+      final c = box.globalToLocal(target.localToGlobal(target.size.center(Offset.zero)));
+      setState(() => _origin = Alignment(c.dx / box.size.width * 2 - 1, c.dy / box.size.height * 2 - 1));
+      await _zoom.animateTo(1, duration: const Duration(milliseconds: 480), curve: Curves.easeInCubic);
+    }
+    if (!mounted) return;
+    await context.push('/place/${type.name}');
+    if (mounted) _zoom.animateTo(0, duration: s.anim(const Duration(milliseconds: 380)), curve: Curves.easeOutCubic);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final now = DateTime.now();
-    List<PantryItem> at(LocationType t) => sortByUrgency(items.where((i) => placeOf(i) == t), now);
+    List<PantryItem> at(LocationType t) => sortByUrgency(widget.items.where((i) => FridgeView.placeOf(i) == t), now);
     final b = Theme.of(context).brightness;
 
     return SingleChildScrollView(
@@ -36,63 +66,72 @@ class FridgeView extends ConsumerWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            children: [
-              // Fridge body
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: GlebaColors.body(b),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: GlebaColors.bodyEdge(b), width: 2),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 12)),
-                  ],
+          child: AnimatedBuilder(
+            animation: _zoom,
+            builder: (context, child) => Transform.scale(
+              scale: 1 + 2.2 * _zoom.value,
+              alignment: _origin,
+              child: Opacity(opacity: (1 - _zoom.value * 0.6).clamp(0, 1), child: child),
+            ),
+            child: Column(
+              key: _content,
+              children: [
+                // Fridge body
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: GlebaColors.body(b),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: GlebaColors.bodyEdge(b), width: 2),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 24, offset: const Offset(0, 12)),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Compartment(
+                        key: const ValueKey('fridge'),
+                        type: LocationType.fridge,
+                        items: at(LocationType.fridge),
+                        height: 300,
+                        onOpen: _open,
+                      ),
+                      const SizedBox(height: 8),
+                      Compartment(
+                        key: const ValueKey('freezer'),
+                        type: LocationType.freezer,
+                        items: at(LocationType.freezer),
+                        height: 190,
+                        onOpen: _open,
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    Compartment(
-                      key: const ValueKey('fridge'),
-                      type: LocationType.fridge,
-                      items: at(LocationType.fridge),
-                      height: 380,
-                      onItemTap: onItemTap,
-                    ),
-                    const SizedBox(height: 8),
-                    Compartment(
-                      key: const ValueKey('freezer'),
-                      type: LocationType.freezer,
-                      items: at(LocationType.freezer),
-                      height: 240,
-                      onItemTap: onItemTap,
-                    ),
-                  ],
-                ),
-              ),
-              // Feet
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(
-                  2,
-                  (_) => Container(
-                    width: 36,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: GlebaColors.bodyEdge(b),
-                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(6)),
+                // Feet
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(
+                    2,
+                    (_) => Container(
+                      width: 36,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: GlebaColors.bodyEdge(b),
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(6)),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Compartment(
-                key: const ValueKey('pantry'),
-                type: LocationType.pantry,
-                items: at(LocationType.pantry),
-                height: 220,
-                onItemTap: onItemTap,
-              ),
-            ],
+                const SizedBox(height: 20),
+                Compartment(
+                  key: const ValueKey('pantry'),
+                  type: LocationType.pantry,
+                  items: at(LocationType.pantry),
+                  height: 190,
+                  onOpen: _open,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -106,13 +145,15 @@ class Compartment extends ConsumerStatefulWidget {
     required this.type,
     required this.items,
     required this.height,
-    required this.onItemTap,
+    required this.onOpen,
   });
 
   final LocationType type;
   final List<PantryItem> items;
   final double height;
-  final void Function(PantryItem) onItemTap;
+
+  /// Opens the inside; completes when the user comes back.
+  final Future<void> Function(LocationType type, GlobalKey compartment) onOpen;
 
   @override
   ConsumerState<Compartment> createState() => _CompartmentState();
@@ -120,9 +161,11 @@ class Compartment extends ConsumerStatefulWidget {
 
 class _CompartmentState extends ConsumerState<Compartment> with TickerProviderStateMixin {
   late final AnimationController _door = AnimationController(vsync: this);
+  final _key = GlobalKey();
   AnimationController? _shimmer;
 
   bool get _isFreezer => widget.type == LocationType.freezer;
+  bool get _isPantry => widget.type == LocationType.pantry;
 
   @override
   void initState() {
@@ -146,42 +189,66 @@ class _CompartmentState extends ConsumerState<Compartment> with TickerProviderSt
     super.dispose();
   }
 
-  void _toggle() {
+  Future<void> _open() async {
+    if (_door.value > 0.05) return;
     final s = ref.read(settingsProvider);
-    if (_door.value > 0.5) {
-      _door.animateTo(0, duration: s.anim(const Duration(milliseconds: 420)), curve: Curves.easeInCubic);
-    } else {
-      _door.animateTo(1, duration: s.anim(const Duration(milliseconds: 750)), curve: Curves.easeOutBack);
-    }
+    // The door swings open while the camera moves in.
+    _door.animateTo(1, duration: s.anim(const Duration(milliseconds: 520)), curve: Curves.easeOutCubic);
+    await widget.onOpen(widget.type, _key);
+    if (mounted) _door.animateTo(0, duration: s.anim(const Duration(milliseconds: 420)), curve: Curves.easeInOutCubic);
   }
+
+  Matrix4 _swing(double angle) => Matrix4.identity()
+    ..setEntry(3, 2, 0.0012)
+    ..multiply(Matrix4.rotationY(angle));
 
   @override
   Widget build(BuildContext context) {
     final t = _door.value.clamp(0.0, 1.0);
-    final doorGone = t > 0.97;
+    final b = Theme.of(context).brightness;
+    final (top, bottom) = insideColors(widget.type, b);
+    final door = _Door(type: widget.type, items: widget.items, shimmer: _shimmer, onTap: _open, wings: _isPantry);
+
     return SizedBox(
+      key: _key,
       height: widget.height,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _Interior(type: widget.type, items: widget.items, glow: t, onItemTap: widget.onItemTap, onClose: _toggle),
+          // What you see behind the opening door.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [top, bottom]),
+            ),
+          ),
           if (t > 0 && t < 1 && ref.watch(settingsProvider).animations)
-            IgnorePointer(child: CustomPaint(painter: _ColdBreathPainter(t, freezer: _isFreezer))),
-          if (!doorGone)
-            IgnorePointer(
-              ignoring: t > 0.05,
-              child: Transform(
-                alignment: _isFreezer ? Alignment.bottomCenter : Alignment.centerLeft,
-                transform: Matrix4.identity()
-                  ..setEntry(3, 2, 0.0012)
-                  ..multiply(_isFreezer ? Matrix4.rotationX(-t * pi / 2) : Matrix4.rotationY(-t * pi / 2)),
-                child: _Door(
-                  type: widget.type,
-                  items: widget.items,
-                  shimmer: _shimmer,
-                  onTap: _toggle,
+            IgnorePointer(child: CustomPaint(painter: _ColdBreathPainter(t, freezer: _isFreezer || _isPantry))),
+          if (_isPantry) ...[
+            // Two wing doors.
+            Row(children: [
+              Expanded(
+                child: Transform(
+                  alignment: Alignment.centerLeft,
+                  transform: _swing(-t * pi * 0.55),
+                  child: _Wing(left: true, onTap: _open),
                 ),
               ),
+              Expanded(
+                child: Transform(
+                  alignment: Alignment.centerRight,
+                  transform: _swing(t * pi * 0.55),
+                  child: _Wing(left: false, onTap: _open),
+                ),
+              ),
+            ]),
+            IgnorePointer(child: Opacity(opacity: (1 - t * 3).clamp(0, 1), child: door)),
+          ] else
+            Transform(
+              // Fridge and freezer doors open to the same side.
+              alignment: Alignment.centerLeft,
+              transform: _swing(-t * pi * 0.55),
+              child: door,
             ),
         ],
       ),
@@ -189,13 +256,64 @@ class _CompartmentState extends ConsumerState<Compartment> with TickerProviderSt
   }
 }
 
+/// Inside colours (also the background of the full-screen inside).
+(Color, Color) insideColors(LocationType t, Brightness b) => switch (t) {
+      LocationType.freezer =>
+        b == Brightness.light ? (const Color(0xFFDDE9F2), const Color(0xFFCFDFEB)) : (const Color(0xFF18273A), const Color(0xFF132131)),
+      LocationType.pantry =>
+        b == Brightness.light ? (const Color(0xFFEFE4D6), const Color(0xFFE6D7C4)) : (const Color(0xFF3A2E24), const Color(0xFF32271E)),
+      _ => b == Brightness.light ? (const Color(0xFFEEF4F7), const Color(0xFFE4EDF2)) : (const Color(0xFF1D262D), const Color(0xFF182027)),
+    };
+
+Color _woodColor(Brightness b) => b == Brightness.light ? const Color(0xFFD9B48F) : const Color(0xFF6B4F37);
+const _woodHandle = Color(0xFF8A6542);
+
+/// One wing of the pantry's double door.
+class _Wing extends StatelessWidget {
+  const _Wing({required this.left, required this.onTap});
+
+  final bool left;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final b = Theme.of(context).brightness;
+    final r = const Radius.circular(20);
+    return Material(
+      color: _woodColor(b),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(left: left ? r : Radius.zero, right: left ? Radius.zero : r),
+        side: BorderSide(color: _woodHandle.withValues(alpha: 0.5)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(children: [
+          Positioned.fill(child: CustomPaint(painter: _WoodPainter(b))),
+          Positioned(
+            top: 70,
+            bottom: 70,
+            left: left ? null : 8,
+            right: left ? 8 : null,
+            child: const _Handle(color: _woodHandle, horizontal: false),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 class _Door extends StatelessWidget {
-  const _Door({required this.type, required this.items, required this.onTap, this.shimmer});
+  const _Door({required this.type, required this.items, required this.onTap, this.shimmer, this.wings = false});
 
   final LocationType type;
   final List<PantryItem> items;
   final VoidCallback onTap;
   final Animation<double>? shimmer;
+
+  /// Only the writing – the pantry's wings are drawn separately.
+  final bool wings;
 
   @override
   Widget build(BuildContext context) {
@@ -207,13 +325,15 @@ class _Door extends StatelessWidget {
     final isPantry = type == LocationType.pantry;
     final isFreezer = type == LocationType.freezer;
 
-    final doorColor = isPantry
-        ? (b == Brightness.light ? const Color(0xFFD9B48F) : const Color(0xFF6B4F37))
+    final doorColor = isFreezer
+        ? (b == Brightness.light ? const Color(0xFFD6E6F1) : const Color(0xFF22374A))
         : GlebaColors.body(b);
-    final handleColor = isPantry ? const Color(0xFF8A6542) : GlebaColors.bodyEdge(b);
+    final handleColor = isFreezer
+        ? (b == Brightness.light ? const Color(0xFFA9C2D3) : const Color(0xFF102030))
+        : GlebaColors.bodyEdge(b);
 
     Widget content = Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: const EdgeInsets.fromLTRB(20, 18, 24, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -240,7 +360,7 @@ class _Door extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final i in urgent.take(4))
+              for (final i in urgent.take(isPantry ? 2 : 4))
                 Chip(
                   visualDensity: VisualDensity.compact,
                   avatar: Text(categoryById(i.categoryId).emoji),
@@ -250,10 +370,11 @@ class _Door extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Text(l.tapToOpen, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline)),
+          Text(l.tapToOpen, style: theme.textTheme.labelSmall?.copyWith(color: isPantry ? null : theme.colorScheme.outline)),
         ],
       ),
     );
+    if (wings) return content;
 
     return Material(
       color: doorColor,
@@ -271,13 +392,8 @@ class _Door extends StatelessWidget {
                   builder: (_, _) => CustomPaint(painter: _FrostPainter(shimmer!.value, b)),
                 ),
               ),
-            if (isPantry) Positioned.fill(child: CustomPaint(painter: _WoodPainter(b))),
             Positioned.fill(child: content),
-            // Handle
-            if (isFreezer)
-              Positioned(top: 8, left: 60, right: 60, child: _Handle(color: handleColor, horizontal: true))
-            else
-              Positioned(right: 8, top: 40, bottom: 40, child: _Handle(color: handleColor, horizontal: false)),
+            Positioned(right: 8, top: 40, bottom: 40, child: _Handle(color: handleColor, horizontal: false)),
           ],
         ),
       ),
@@ -324,136 +440,21 @@ class _Badge extends StatelessWidget {
       );
 }
 
-class _Interior extends ConsumerWidget {
-  const _Interior({
-    required this.type,
-    required this.items,
-    required this.glow,
-    required this.onItemTap,
-    required this.onClose,
-  });
-
-  final LocationType type;
-  final List<PantryItem> items;
-  final double glow;
-  final void Function(PantryItem) onItemTap;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final b = Theme.of(context).brightness;
-    final isPantry = type == LocationType.pantry;
-    final base = isPantry
-        ? (b == Brightness.light ? const Color(0xFFF3E6D6) : const Color(0xFF3A2E24))
-        : GlebaColors.interior(b);
-    const perShelf = 3;
-    final shelves = <List<PantryItem>>[
-      for (var i = 0; i < items.length; i += perShelf) items.sublist(i, min(i + perShelf, items.length)),
-    ];
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: const Alignment(0, -1.1),
-            radius: 1.4,
-            colors: [Color.lerp(base, GlebaColors.interiorLight(b), glow.clamp(0, 1))!, base],
-          ),
-        ),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: onClose,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
-                child: Row(
-                  children: [
-                    Text(locationLabel(context.l, type), style: Theme.of(context).textTheme.titleSmall),
-                    const Spacer(),
-                    const Icon(Icons.close, size: 18),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: items.isEmpty
-                  ? const Center(child: _FlickeringEmpty())
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                      itemCount: shelves.length,
-                      itemBuilder: (context, s) => _Shelf(
-                        items: shelves[s],
-                        perShelf: perShelf,
-                        startIndex: s * perShelf,
-                        glass: !isPantry,
-                        onItemTap: onItemTap,
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Shelf extends StatelessWidget {
-  const _Shelf({
-    required this.items,
-    required this.perShelf,
-    required this.startIndex,
-    required this.glass,
-    required this.onItemTap,
-  });
-
-  final List<PantryItem> items;
-  final int perShelf;
-  final int startIndex;
-  final bool glass;
-  final void Function(PantryItem) onItemTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final b = Theme.of(context).brightness;
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            for (var i = 0; i < perShelf; i++)
-              Expanded(
-                child: i < items.length
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: ItemTile(item: items[i], index: startIndex + i, onTap: () => onItemTap(items[i])),
-                      )
-                    : const SizedBox(),
-              ),
-          ],
-        ),
-        Container(
-          height: 6,
-          margin: const EdgeInsets.only(top: 2, bottom: 10),
-          decoration: BoxDecoration(
-            color: glass
-                ? (b == Brightness.light ? Colors.white.withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.12))
-                : const Color(0xFFA67C52),
-            borderRadius: BorderRadius.circular(3),
-            border: glass ? Border.all(color: GlebaColors.ice.withValues(alpha: 0.35)) : null,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// One food item standing on a shelf. Drops in with a little bounce.
 class ItemTile extends ConsumerWidget {
-  const ItemTile({super.key, required this.item, required this.onTap, this.index = 0});
+  const ItemTile({
+    super.key,
+    required this.item,
+    required this.onTap,
+    this.index = 0,
+    this.onLongPress,
+    this.selected = false,
+  });
 
   final PantryItem item;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool selected;
   final int index;
 
   @override
@@ -471,8 +472,15 @@ class ItemTile extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(6, 8, 6, 6),
+          padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+          foregroundDecoration: selected
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: GlebaColors.ice, width: 2.5),
+                )
+              : null,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border(bottom: BorderSide(color: color, width: 4)),
@@ -493,11 +501,17 @@ class ItemTile extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelMedium?.copyWith(height: 1.1)),
+              // Always two lines tall, so tiles on a shelf line up.
+              SizedBox(
+                height: MediaQuery.textScalerOf(context).scale(theme.textTheme.labelMedium?.fontSize ?? 12) * 2.2 + 2,
+                child: Center(
+                  child: Text(item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelMedium?.copyWith(height: 1.1)),
+                ),
+              ),
               const SizedBox(height: 2),
               Text(relativeExpiry(context.l, item.expiryDate, now),
                   maxLines: 1,
@@ -509,7 +523,22 @@ class ItemTile extends ConsumerWidget {
       ),
     );
 
-    if (!settings.animations) return tile;
+    final decorated = Stack(clipBehavior: Clip.none, children: [
+      SizedBox(width: double.infinity, child: tile),
+      if (item.runningLow)
+        Positioned(
+          left: 4,
+          top: 3,
+          child: Text('📉', style: TextStyle(fontSize: 11, color: GlebaColors.freshness(Freshness.soon, theme.brightness))),
+        ),
+      if (selected)
+        const Positioned(
+          right: 4,
+          top: 4,
+          child: CircleAvatar(radius: 9, backgroundColor: GlebaColors.ice, child: Icon(Icons.check, size: 13, color: Colors.white)),
+        ),
+    ]);
+    if (!settings.animations) return decorated;
     return TweenAnimationBuilder<double>(
       key: ValueKey(item.id),
       tween: Tween(begin: 0, end: 1),
@@ -519,49 +548,9 @@ class ItemTile extends ConsumerWidget {
         offset: Offset(0, (1 - v) * -30),
         child: Transform.scale(scale: 0.6 + 0.4 * v, child: Opacity(opacity: v.clamp(0, 1), child: child)),
       ),
-      child: tile,
+      child: decorated,
     );
   }
-}
-
-/// Empty compartment: the light flickers and the crickets chirp.
-class _FlickeringEmpty extends StatefulWidget {
-  const _FlickeringEmpty();
-
-  @override
-  State<_FlickeringEmpty> createState() => _FlickeringEmptyState();
-}
-
-class _FlickeringEmptyState extends State<_FlickeringEmpty> {
-  Timer? _timer;
-  double _opacity = 1;
-  int _ticks = 0;
-  final _rnd = Random();
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 110), (t) {
-      if (++_ticks > 14) {
-        t.cancel();
-        setState(() => _opacity = 1);
-        return;
-      }
-      setState(() => _opacity = _rnd.nextBool() ? 1 : 0.25);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Opacity(
-        opacity: _opacity,
-        child: Text(context.l.emptyShelf, style: Theme.of(context).textTheme.bodyMedium),
-      );
 }
 
 /// Puffs of cold air escaping while the door opens.
@@ -605,7 +594,7 @@ class _FrostPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
-        colors: [GlebaColors.frost.withValues(alpha: brightness == Brightness.light ? 0.9 : 0.25), Colors.transparent],
+        colors: [GlebaColors.frost.withValues(alpha: brightness == Brightness.light ? 0.9 : 0.10), Colors.transparent],
       ).createShader(Offset.zero & Size(size.width, size.height * 0.45))
       ..blendMode = BlendMode.srcOver;
     canvas.drawRect(Rect.fromLTWH(0, size.height * 0.55, size.width, size.height * 0.45), edge);
@@ -615,7 +604,7 @@ class _FrostPainter extends CustomPainter {
       final p = Offset(rnd.nextDouble() * size.width, size.height * (0.45 + rnd.nextDouble() * 0.55));
       final phase = rnd.nextDouble();
       final a = 0.2 + 0.6 * (0.5 + 0.5 * sin((t + phase) * 2 * pi));
-      dot.color = Colors.white.withValues(alpha: a * (brightness == Brightness.light ? 0.9 : 0.5));
+      dot.color = Colors.white.withValues(alpha: a * (brightness == Brightness.light ? 0.9 : 0.3));
       _sparkle(canvas, p, 1.5 + rnd.nextDouble() * 2.5, dot);
     }
   }

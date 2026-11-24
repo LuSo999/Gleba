@@ -387,5 +387,22 @@
   "runningLow": "running low",
   "markRunningLow": "Running low",
   "unmarkRunningLow": "Not running low",
-  "statsWhoAte": "Who ate what"
+  "statsWhoAte": "Who ate what",
+  "cookedDefaultName": "Cooked dish",
+  "cookTitle": "Cook a dish",
+  "cookText": "The selected ingredients are used up and the dish goes into the fridge. Whoever eats a portion later gets it in their Health.",
+  "cookName": "Dish name",
+  "cookDo": "Cook",
+  "selectedCount": "Selected: {count}",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkEat": "We ate it",
+  "bulkCook": "Cook a dish",
+  "bulkThrow": "Throw away",
+  "bulkDelete": "Delete"
 }

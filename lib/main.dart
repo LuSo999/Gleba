@@ -32,8 +32,15 @@ Future<void> main() async {
   }
   final prefs = await SharedPreferences.getInstance();
 
+  // Screenshots / previews: `--dart-define=GLEBA_DEMO=true` runs the signed-in
+  // demo with a two-person household and never touches Firebase.
+  const forceDemo = bool.fromEnvironment('GLEBA_DEMO');
+  final demoAuth = DemoAuthService();
+  if (forceDemo) await demoAuth.signInWithGoogle();
+
   var firebaseReady = false;
   try {
+    if (forceDemo) throw StateError('GLEBA_DEMO');
     // Throws while lib/firebase_options.dart is still the placeholder.
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     // Offline-first: reads come from the local cache, writes sync later.
@@ -57,8 +64,8 @@ Future<void> main() async {
         authServiceProvider.overrideWithValue(FirebaseAuthService(FirebaseAuth.instance)),
         repositoryProvider.overrideWithValue(FirestoreRepository(FirebaseFirestore.instance)),
       ] else ...[
-        authServiceProvider.overrideWithValue(DemoAuthService()),
-        repositoryProvider.overrideWithValue(DemoRepository()),
+        authServiceProvider.overrideWithValue(demoAuth),
+        repositoryProvider.overrideWithValue(DemoRepository(partner: forceDemo)),
       ],
     ],
     child: const GlebaApp(),

@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 
 import 'app_state.dart';
 import 'l10n/app_localizations.dart';
+import 'domain/models.dart';
+import 'ui/fridge/interior_screen.dart';
 import 'ui/notification_scheduler.dart';
 import 'ui/screens/add_item_screen.dart';
 import 'ui/screens/ai_settings_screen.dart';
@@ -61,6 +63,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/inventory',
         builder: (_, s) => Narrow(InventoryScreen(filter: s.uri.queryParameters['filter'])),
+      ),
+      GoRoute(
+        path: '/place/:type',
+        pageBuilder: (_, s) => CustomTransitionPage(
+          key: s.pageKey,
+          transitionDuration: const Duration(milliseconds: 260),
+          reverseTransitionDuration: const Duration(milliseconds: 200),
+          transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
+          child: Narrow(CompartmentScreen(
+            type: LocationType.values.firstWhere((t) => t.name == s.pathParameters['type'], orElse: () => LocationType.fridge),
+          )),
+        ),
       ),
       GoRoute(path: '/plan', builder: (_, _) => Narrow(const PlanScreen())),
       GoRoute(path: '/take', builder: (_, _) => Narrow(const TakeScreen())),

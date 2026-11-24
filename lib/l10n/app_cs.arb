@@ -588,5 +588,22 @@
   "runningLow": "dochází",
   "markRunningLow": "Dochází",
   "unmarkRunningLow": "Už nedochází",
-  "statsWhoAte": "Kdo co snědl"
+  "statsWhoAte": "Kdo co snědl",
+  "cookedDefaultName": "Uvařené jídlo",
+  "cookTitle": "Uvařit jídlo",
+  "cookText": "Vybrané suroviny se spotřebují a do lednice přibude hotové jídlo. Když pak někdo sní jeho porci, zapíše se mu do Health.",
+  "cookName": "Název jídla",
+  "cookDo": "Uvařit",
+  "selectedCount": "Vybráno: {count}",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkEat": "Snědli jsme",
+  "bulkCook": "Uvařit jídlo",
+  "bulkThrow": "Vyhodit",
+  "bulkDelete": "Smazat"
 }

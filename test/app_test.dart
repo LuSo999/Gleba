@@ -40,10 +40,22 @@ void main() {
     expect(find.text('Domov'), findsOneWidget);
     expect(find.text('Lednice'), findsWidgets);
 
-    // Open the fridge door.
-    await tester.tap(find.text('Lednice').last);
+    // Open the fridge: the camera moves in, the inside opens full screen.
+    await tester.tap(find.text('Lednice').first);
     await settle(tester);
+    expect(find.textContaining('Lednice ·'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).last);
     expect(find.text('Máslo'), findsOneWidget);
+
+    // Long-press selects; the bar offers bulk actions.
+    await tester.longPress(find.text('Máslo'));
+    await settle(tester);
+    expect(find.text('Vybráno: 1'), findsOneWidget);
+    expect(find.text('Uvařit jídlo'), findsOneWidget);
+    await tester.tap(find.byTooltip('Zrušit'));
+    await settle(tester);
+    await tester.tap(find.byType(BackButton));
+    await settle(tester);
 
     // Switch to the urgency list – expired ham comes first.
     await tester.tap(find.text('Spotřebuj nejdřív'));
