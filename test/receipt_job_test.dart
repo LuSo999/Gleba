@@ -19,7 +19,7 @@ class _SlowAi extends AiService {
 
   @override
   Future<T> runParsed<T>(AiFeature f, AiRequest r, T Function(String text) parse,
-          {void Function(AiRetryNote note)? onRetry}) async =>
+          {void Function(AiRetryNote note)? onRetry, void Function(AiAttempt a, String text)? onAnswer}) async =>
       parse(await answer.future);
 }
 

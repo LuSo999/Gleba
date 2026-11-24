@@ -48,6 +48,7 @@ class ReceiptJob {
     this.saving = false,
     this.retry,
     this.canRetry = false,
+    this.details,
   });
 
   final ReceiptStage stage;
@@ -63,6 +64,9 @@ class ReceiptJob {
 
   /// After an error: the last photo can be sent again.
   final bool canRetry;
+
+  /// After an error: which models answered what (troubleshooting).
+  final String? details;
 
   bool get busy => stage == ReceiptStage.preparing || stage == ReceiptStage.working || stage == ReceiptStage.parsing;
 }
@@ -110,19 +114,29 @@ class ReceiptJobNotifier extends Notifier<ReceiptJob> {
       return;
     }
     final started = DateTime.now();
+    final log = StringBuffer();
     try {
       state = ReceiptJob(stage: ReceiptStage.working, startedAt: started);
+      final image = AiImage.detect(bytes);
+      final parts = await compute(splitTallImage, image);
+      log.writeln('${image.mime}, ${bytes.length ~/ 1024} kB, ${parts.length} part(s)');
       final lines = await ai.runParsed(
         AiFeature.receipt,
-        receiptRequest(await compute(splitTallImage, AiImage(bytes)), lang),
-        parseReceipt,
+        receiptRequest(parts, lang),
+        (text) {
+          final lines = parseReceipt(text);
+          // Nothing found is usually the model's slip: ask the next one.
+          if (lines.isEmpty) throw const AiException('empty', transient: true);
+          return lines;
+        },
         onRetry: (note) => state = ReceiptJob(stage: ReceiptStage.working, startedAt: DateTime.now(), retry: note),
+        onAnswer: (a, text) => log.writeln('\n${a.model ?? a.provider.name}:\n'
+            '${text.length > 600 ? '${text.substring(0, 600)}…' : text}'),
       );
-      state = lines.isEmpty
-          ? const ReceiptJob(stage: ReceiptStage.error, error: 'empty', canRetry: true)
-          : ReceiptJob(stage: ReceiptStage.done, lines: [for (final r in lines) ReceiptDraftLine(r)]);
+      state = ReceiptJob(stage: ReceiptStage.done, lines: [for (final r in lines) ReceiptDraftLine(r)]);
     } catch (e) {
-      state = ReceiptJob(stage: ReceiptStage.error, error: '$e', canRetry: true);
+      log.writeln('\n$e');
+      state = ReceiptJob(stage: ReceiptStage.error, error: '$e', canRetry: true, details: log.toString());
     }
   }
 }
@@ -269,6 +283,20 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> with SingleTicker
             if (error != null) ...[
               const SizedBox(height: 12),
               Text(error, textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.error)),
+              if (job.details case final d?)
+                TextButton(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(l.aiDetails),
+                      content: SingleChildScrollView(
+                        child: SelectableText(d, style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                      ),
+                      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(MaterialLocalizations.of(context).closeButtonLabel))],
+                    ),
+                  ),
+                  child: Text(l.aiDetails),
+                ),
             ],
             const SizedBox(height: 24),
             if (job.canRetry) ...[

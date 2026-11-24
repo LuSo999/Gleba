@@ -329,5 +329,6 @@
   "aiShowModels": "Available models",
   "aiTierFastShort": "fast",
   "aiTierSmartShort": "smart",
-  "aiBadAnswer": "The AI kept returning an unreadable answer. Try again or pick another model in Settings → AI assistant."
+  "aiBadAnswer": "The AI kept returning an unreadable answer. Try again or pick another model in Settings → AI assistant.",
+  "aiDetails": "Details"
 }

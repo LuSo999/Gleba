@@ -530,5 +530,6 @@
   "aiShowModels": "Dostupné modely",
   "aiTierFastShort": "rychlý",
   "aiTierSmartShort": "chytrý",
-  "aiBadAnswer": "AI vrátila nečitelnou odpověď ani po opakování. Zkuste to znovu nebo vyberte jiný model v Nastavení → AI asistent."
+  "aiBadAnswer": "AI vrátila nečitelnou odpověď ani po opakování. Zkuste to znovu nebo vyberte jiný model v Nastavení → AI asistent.",
+  "aiDetails": "Podrobnosti"
 }

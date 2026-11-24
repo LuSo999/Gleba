@@ -19,4 +19,14 @@ void main() {
     final short = AiImage(File('test_ai/fixtures/receipt_short.png').readAsBytesSync());
     expect(splitTallImage(short), hasLength(1));
   });
+
+  test('mime is sniffed from the bytes; transparent margins become white', () {
+    final png = File('test_ai/fixtures/receipt_short.png').readAsBytesSync();
+    expect(sniffImageMime(png), 'image/png');
+    expect(sniffImageMime(File('test_ai/fixtures/receipt_long.jpg').readAsBytesSync()), 'image/jpeg');
+    final tall = img.Image(width: 100, height: 500, numChannels: 4); // fully transparent
+    final pieces = splitTallImage(AiImage.detect(img.encodePng(tall)));
+    final p = img.decodeImage(pieces.first.bytes)!;
+    expect(p.getPixel(5, 5).r, greaterThan(240));
+  });
 }

@@ -9,7 +9,7 @@ import 'ai_client.dart';
 import 'ai_models.dart';
 import 'ai_retry.dart';
 
-export 'ai_retry.dart' show AiRetryNote;
+export 'ai_retry.dart' show AiAttempt, AiRetryNote;
 
 /// Per-device AI settings: keys stored on this device and which provider
 /// each feature uses. Shared household keys come from the household document.
@@ -230,11 +230,16 @@ class AiService {
 
   /// Like [run], but a reply that can't be [parse]d (broken JSON) counts as a
   /// failure too, so it is asked again / falls back like an overloaded model.
+  /// [onAnswer] sees every raw reply (for troubleshooting).
   Future<T> runParsed<T>(AiFeature f, AiRequest r, T Function(String text) parse,
-      {void Function(AiRetryNote note)? onRetry}) {
+      {void Function(AiRetryNote note)? onRetry, void Function(AiAttempt a, String text)? onAnswer}) {
     final attempts = attemptsFor(f);
     if (attempts.isEmpty) throw const AiException('no-provider');
-    return runWithFallback(attempts, (a) async => parse(await _runOnce(a.provider, a.model, r)), onRetry: onRetry);
+    return runWithFallback(attempts, (a) async {
+      final text = await _runOnce(a.provider, a.model, r);
+      onAnswer?.call(a, text);
+      return parse(text);
+    }, onRetry: onRetry);
   }
 
   Future<String> _runOnce(AiProvider p, String? model, AiRequest r) async {

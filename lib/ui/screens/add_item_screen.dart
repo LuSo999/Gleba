@@ -159,7 +159,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       try {
         final res = await ai.runParsed(
           AiFeature.date,
-          dateRequest(AiImage(await photo.readAsBytes()), DateTime.now()),
+          dateRequest(AiImage.detect(await photo.readAsBytes()), DateTime.now()),
           parseDate,
           onRetry: (n) => messenger.showSnackBar(SnackBar(
             content: Text(n.retry > 0 ? l.aiRetrying : l.aiTryingOther(n.attempt.model ?? n.attempt.provider.name)),
@@ -214,7 +214,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
       final lang = mounted ? Localizations.localeOf(context).languageCode : 'cs';
       final p = await ref
           .read(aiServiceProvider)
-          .runParsed(AiFeature.product, productRequest(AiImage(await photo.readAsBytes()), lang), parseProduct);
+          .runParsed(AiFeature.product, productRequest(AiImage.detect(await photo.readAsBytes()), lang), parseProduct);
       if (!mounted) return;
       setState(() {
         _name.text = p.name;

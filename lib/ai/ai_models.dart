@@ -135,6 +135,10 @@ const Map<AiProvider, String> aiKeyUrls = {
 class AiImage {
   const AiImage(this.bytes, {this.mime = 'image/jpeg'});
 
+  /// Picks the media type from the file's first bytes (gallery screenshots
+  /// are PNG/WebP, camera photos JPEG, some phones HEIC).
+  factory AiImage.detect(Uint8List bytes) => AiImage(bytes, mime: sniffImageMime(bytes));
+
   final Uint8List bytes;
   final String mime;
 }
@@ -169,6 +173,15 @@ class AiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+String sniffImageMime(Uint8List b) {
+  bool at(int i, List<int> sig) => b.length >= i + sig.length && [for (var k = 0; k < sig.length; k++) b[i + k]].join(',') == sig.join(',');
+  if (at(0, [0x89, 0x50, 0x4E, 0x47])) return 'image/png';
+  if (at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50])) return 'image/webp';
+  if (at(0, [0x47, 0x49, 0x46])) return 'image/gif';
+  if (at(4, [0x66, 0x74, 0x79, 0x70])) return 'image/heic';
+  return 'image/jpeg';
 }
 
 /// A key stored on this device.

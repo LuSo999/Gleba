@@ -23,12 +23,16 @@ export const defaultModels: Record<Provider, string> = {
   anthropic: 'claude-opus-5-5',
 };
 
-export class AiError extends Error {}
+export class AiError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
 
 async function postJson(url: string, headers: Record<string, string>, body: unknown): Promise<any> {
   const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
   const json: any = await res.json().catch(() => ({}));
-  if (!res.ok) throw new AiError(json?.error?.message ?? `HTTP ${res.status}`);
+  if (!res.ok) throw new AiError(json?.error?.message ?? `HTTP ${res.status}`, res.status);
   return json;
 }
 
@@ -62,15 +66,32 @@ async function callGemini(key: string, model: string, r: AiRequest): Promise<str
     ...(r.images ?? []).map((i) => ({ inline_data: { mime_type: i.mime, data: i.data } })),
     { text: r.prompt },
   ];
-  const json = await postJson(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    { 'x-goog-api-key': key },
-    {
-      contents: [{ role: 'user', parts }],
-      generationConfig: r.schema ? { responseMimeType: 'application/json' } : {},
-    },
-  );
-  return (json.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? '').join('');
+  const call = (withSchema: boolean) =>
+    postJson(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      { 'x-goog-api-key': key },
+      {
+        contents: [{ role: 'user', parts }],
+        generationConfig: r.schema
+          ? { responseMimeType: 'application/json', ...(withSchema ? { responseJsonSchema: r.schema } : {}) }
+          : {},
+      },
+    );
+  let json: any;
+  try {
+    json = await call(true);
+  } catch (e) {
+    // Older models don't take a JSON schema: ask again without it.
+    if (!r.schema || !(e instanceof AiError) || e.status !== 400) throw e;
+    json = await call(false);
+  }
+  const cand = json.candidates?.[0];
+  const text = (cand?.content?.parts ?? [])
+    .filter((p: any) => !p.thought)
+    .map((p: any) => p.text ?? '')
+    .join('');
+  if (!text.trim()) throw new AiError(`Gemini: ${cand?.finishReason ?? json.promptFeedback?.blockReason ?? 'empty'}`);
+  return text;
 }
 
 async function callOpenAi(key: string, model: string, r: AiRequest): Promise<string> {
