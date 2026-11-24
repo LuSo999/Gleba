@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gleba/ai/ai_models.dart';
 import 'package:gleba/ai/ai_retry.dart';
+import 'package:gleba/ai/ai_tasks.dart';
 
 void main() {
   const busy = AiException('This model is currently experiencing high demand.', status: 503, transient: true);
@@ -58,5 +59,32 @@ void main() {
     const g4 = [AiModelInfo('gemini-2.5-flash'), AiModelInfo('gemini-2.5-pro'), AiModelInfo('gemini-4-hydrogen'), AiModelInfo('gemini-4-neon')];
     expect(recommendedModel(AiProvider.gemini, AiTier.fast, g4), 'gemini-4-hydrogen');
     expect(recommendedModel(AiProvider.gemini, AiTier.smart, g4), 'gemini-4-neon');
+  });
+
+  group('broken JSON from the model is repaired', () {
+    test('trailing commas', () {
+      final j = decodeJsonObject('{"items":[{"name":"Bagetka","quantity":6,},{"name":"Chléb"},],}');
+      expect((j['items'] as List).length, 2);
+    });
+    test('missing comma between objects and a code fence', () {
+      final j = decodeJsonObject('```json\n{"items":[{"name":"A"}\n{"name":"B"}]}\n```');
+      expect([for (final i in j['items'] as List) i['name']], ['A', 'B']);
+    });
+    test('cut-off answer keeps the complete items', () {
+      final j = decodeJsonObject('{"store":"Lidl","items":[{"name":"A","price":1},{"name":"B","pri');
+      expect([for (final i in j['items'] as List) i['name']], ['A']);
+    });
+    test('strings with braces and commas stay intact', () {
+      final j = decodeJsonObject('{"items":[{"name":"x, {y}],","q":1},]}');
+      expect((j['items'] as List).single['name'], 'x, {y}],');
+    });
+    test('hopeless answer is a transient error (asked again)', () {
+      expect(() => decodeJsonObject('sorry'), throwsA(isA<AiException>().having((e) => e.transient, 'transient', isTrue)));
+    });
+    test('receipt from a repaired answer', () {
+      final lines = parseReceipt('{"store":"Lidl","items":[{"name":"Bagetka","quantity":6,"unit":"ks","price":15.6,'
+          '"isFood":true,"category":"bakery"},\n},]}');
+      expect(lines.single.name, 'Bagetka');
+    });
   });
 }

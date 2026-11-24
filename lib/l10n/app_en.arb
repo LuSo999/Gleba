@@ -328,5 +328,6 @@
   "receiptRetry": "Try the same photo again",
   "aiShowModels": "Available models",
   "aiTierFastShort": "fast",
-  "aiTierSmartShort": "smart"
+  "aiTierSmartShort": "smart",
+  "aiBadAnswer": "The AI kept returning an unreadable answer. Try again or pick another model in Settings → AI assistant."
 }

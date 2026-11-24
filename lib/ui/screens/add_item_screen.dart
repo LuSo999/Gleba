@@ -157,13 +157,14 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     if (candidates.isEmpty && ai.enabledFor(AiFeature.date)) {
       messenger.showSnackBar(SnackBar(content: Text(l.aiReadingDate)));
       try {
-        final res = parseDate(await ai.run(
+        final res = await ai.runParsed(
           AiFeature.date,
           dateRequest(AiImage(await photo.readAsBytes()), DateTime.now()),
+          parseDate,
           onRetry: (n) => messenger.showSnackBar(SnackBar(
             content: Text(n.retry > 0 ? l.aiRetrying : l.aiTryingOther(n.attempt.model ?? n.attempt.provider.name)),
           )),
-        ));
+        );
         if (res != null) {
           candidates = [ExpiryCandidate(res.date, 100, dateType: res.type, matched: 'AI')];
         }
@@ -211,9 +212,9 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     setState(() => _lookingUp = true);
     try {
       final lang = mounted ? Localizations.localeOf(context).languageCode : 'cs';
-      final p = parseProduct(await ref
+      final p = await ref
           .read(aiServiceProvider)
-          .run(AiFeature.product, productRequest(AiImage(await photo.readAsBytes()), lang)));
+          .runParsed(AiFeature.product, productRequest(AiImage(await photo.readAsBytes()), lang), parseProduct);
       if (!mounted) return;
       setState(() {
         _name.text = p.name;

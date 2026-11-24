@@ -225,10 +225,16 @@ class AiService {
 
   /// Runs [r] for [f]; when the model is overloaded it retries and falls back
   /// to other models / providers ([onRetry] tells the UI what is going on).
-  Future<String> run(AiFeature f, AiRequest r, {void Function(AiRetryNote note)? onRetry}) {
+  Future<String> run(AiFeature f, AiRequest r, {void Function(AiRetryNote note)? onRetry}) =>
+      runParsed(f, r, (t) => t, onRetry: onRetry);
+
+  /// Like [run], but a reply that can't be [parse]d (broken JSON) counts as a
+  /// failure too, so it is asked again / falls back like an overloaded model.
+  Future<T> runParsed<T>(AiFeature f, AiRequest r, T Function(String text) parse,
+      {void Function(AiRetryNote note)? onRetry}) {
     final attempts = attemptsFor(f);
     if (attempts.isEmpty) throw const AiException('no-provider');
-    return runWithFallback(attempts, (a) => _runOnce(a.provider, a.model, r), onRetry: onRetry);
+    return runWithFallback(attempts, (a) async => parse(await _runOnce(a.provider, a.model, r)), onRetry: onRetry);
   }
 
   Future<String> _runOnce(AiProvider p, String? model, AiRequest r) async {

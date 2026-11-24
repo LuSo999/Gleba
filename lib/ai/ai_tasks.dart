@@ -19,10 +19,102 @@ Map<String, Object?> _obj(Map<String, Object?> props) => {
     };
 
 /// Tolerates code fences or prose around the JSON (Gemini / OpenAI).
+/// Also repairs what models get wrong: trailing commas, comments, missing
+/// commas between objects and an answer cut off in the middle.
 Map<String, dynamic> decodeJsonObject(String text) {
-  final start = text.indexOf('{'), end = text.lastIndexOf('}');
-  if (start < 0 || end <= start) throw const AiException('invalid-json');
-  return jsonDecode(text.substring(start, end + 1)) as Map<String, dynamic>;
+  final start = text.indexOf('{');
+  if (start < 0) throw const AiException('invalid-json', transient: true);
+  final end = text.lastIndexOf('}');
+  final body = text.substring(start, end > start ? end + 1 : text.length);
+  try {
+    return jsonDecode(body) as Map<String, dynamic>;
+  } catch (_) {}
+  final fixed = repairJson(text.substring(start));
+  try {
+    return jsonDecode(fixed) as Map<String, dynamic>;
+  } catch (_) {
+    throw const AiException('invalid-json', transient: true);
+  }
+}
+
+/// Best-effort JSON repair (outside strings): drops comments and trailing
+/// commas, adds missing commas between values, and closes whatever is still
+/// open – dropping a half-written last element.
+String repairJson(String s) {
+  final out = StringBuffer();
+  final stack = <String>[];
+  var inStr = false, esc = false;
+  // Position after the last complete element at each depth (for truncation).
+  var lastGood = -1;
+  var lastGoodStack = <String>[];
+  String prevSig = ''; // last significant char written outside strings
+  for (var i = 0; i < s.length; i++) {
+    final c = s[i];
+    if (inStr) {
+      out.write(c);
+      if (esc) {
+        esc = false;
+      } else if (c == r'\') {
+        esc = true;
+      } else if (c == '"') {
+        inStr = false;
+        prevSig = '"';
+      }
+      continue;
+    }
+    if (c == '/' && i + 1 < s.length && s[i + 1] == '/') {
+      while (i < s.length && s[i] != '\n') {
+        i++;
+      }
+      continue;
+    }
+    if (c == '"' || c == '{' || c == '[') {
+      // A value starting right after another value: a comma is missing.
+      if (prevSig.isNotEmpty && RegExp(r'[}\]"\w]').hasMatch(prevSig)) out.write(',');
+    }
+    switch (c) {
+      case '"':
+        inStr = true;
+        out.write(c);
+      case '{' || '[':
+        stack.add(c == '{' ? '}' : ']');
+        out.write(c);
+        prevSig = c;
+      case '}' || ']':
+        // A stray closing bracket that closes nothing open: drop it.
+        if (stack.isEmpty || stack.last != c) continue;
+        // Trailing comma before a closing bracket.
+        var str = out.toString().trimRight();
+        if (str.endsWith(',')) {
+          while (str.endsWith(',')) {
+            str = str.substring(0, str.length - 1).trimRight();
+          }
+          out
+            ..clear()
+            ..write(str);
+        }
+        if (stack.isNotEmpty) stack.removeLast();
+        out.write(c);
+        prevSig = c;
+        lastGood = out.length;
+        lastGoodStack = [...stack];
+        if (stack.isEmpty) return out.toString(); // the object is complete; ignore what follows
+      case ',':
+        // Doubled comma or a comma right after an opening bracket.
+        if (prevSig == ',' || prevSig == '[' || prevSig == '{') continue;
+        out.write(c);
+        prevSig = c;
+      default:
+        out.write(c);
+        if (c.trim().isNotEmpty) prevSig = c;
+    }
+  }
+  if (stack.isEmpty && !inStr) return out.toString();
+  // Cut off: keep everything up to the last complete element and close the rest.
+  if (lastGood < 0) return out.toString();
+  var str = out.toString().substring(0, lastGood).trimRight();
+  if (str.endsWith(',')) str = str.substring(0, str.length - 1);
+  return str + lastGoodStack.reversed.join();
 }
 
 // ---- Receipt ---------------------------------------------------------------

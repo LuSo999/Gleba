@@ -529,5 +529,6 @@
   "receiptRetry": "Zkusit znovu stejnou fotku",
   "aiShowModels": "Dostupné modely",
   "aiTierFastShort": "rychlý",
-  "aiTierSmartShort": "chytrý"
+  "aiTierSmartShort": "chytrý",
+  "aiBadAnswer": "AI vrátila nečitelnou odpověď ani po opakování. Zkuste to znovu nebo vyberte jiný model v Nastavení → AI asistent."
 }

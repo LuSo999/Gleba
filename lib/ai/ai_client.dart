@@ -112,23 +112,35 @@ class DirectAiClient {
   }
 
   Future<String> _gemini(DeviceAiKey key, AiRequest r) async {
-    final json = await _post(
-      Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/'
-          '${Uri.encodeComponent(key.model)}:generateContent'),
-      {'x-goog-api-key': key.key},
-      {
-        'contents': [
+    Future<Map<String, dynamic>> call(bool withSchema) => _post(
+          Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/'
+              '${Uri.encodeComponent(key.model)}:generateContent'),
+          {'x-goog-api-key': key.key},
           {
-            'role': 'user',
-            'parts': [
-              for (final i in r.images) {'inline_data': {'mime_type': i.mime, 'data': base64Encode(i.bytes)}},
-              {'text': r.prompt},
+            'contents': [
+              {
+                'role': 'user',
+                'parts': [
+                  for (final i in r.images) {'inline_data': {'mime_type': i.mime, 'data': base64Encode(i.bytes)}},
+                  {'text': r.prompt},
+                ],
+              },
             ],
+            'generationConfig': {
+              if (r.schema != null) 'responseMimeType': 'application/json',
+              // Structured output: the reply is guaranteed to be valid JSON.
+              if (r.schema != null && withSchema) 'responseJsonSchema': r.schema,
+            },
           },
-        ],
-        'generationConfig': {if (r.schema != null) 'responseMimeType': 'application/json'},
-      },
-    );
+        );
+    Map<String, dynamic> json;
+    try {
+      json = await call(true);
+    } on AiException catch (e) {
+      // Older models don't take a JSON schema: ask again without it.
+      if (r.schema == null || e.status != 400) rethrow;
+      json = await call(false);
+    }
     final cand = (json['candidates'] as List?)?.firstOrNull as Map?;
     final parts = cand?['content']?['parts'] as List? ?? const [];
     // Thought summaries are not part of the answer.
@@ -159,7 +171,11 @@ class DirectAiClient {
             ],
           },
         ],
-        if (r.schema != null) 'response_format': {'type': 'json_object'},
+        if (r.schema != null)
+          'response_format': {
+            'type': 'json_schema',
+            'json_schema': {'name': 'answer', 'strict': true, 'schema': r.schema},
+          },
       },
     );
     return ((json['choices'] as List?)?.firstOrNull as Map?)?['message']?['content'] as String? ?? '';

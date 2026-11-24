@@ -111,13 +111,12 @@ class ReceiptJobNotifier extends Notifier<ReceiptJob> {
     final started = DateTime.now();
     try {
       state = ReceiptJob(stage: ReceiptStage.working, startedAt: started);
-      final text = await ai.run(
+      final lines = await ai.runParsed(
         AiFeature.receipt,
         receiptRequest(AiImage(bytes), lang),
+        parseReceipt,
         onRetry: (note) => state = ReceiptJob(stage: ReceiptStage.working, startedAt: DateTime.now(), retry: note),
       );
-      state = ReceiptJob(stage: ReceiptStage.parsing, startedAt: started);
-      final lines = parseReceipt(text);
       state = lines.isEmpty
           ? const ReceiptJob(stage: ReceiptStage.error, error: 'empty', canRetry: true)
           : ReceiptJob(stage: ReceiptStage.done, lines: [for (final r in lines) ReceiptDraftLine(r)]);
@@ -249,6 +248,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> with SingleTicker
       null => null,
       'empty' => l.receiptEmpty,
       'no-provider' => l.aiNoProvider,
+      'invalid-json' => l.aiBadAnswer,
       final e => l.aiError(e),
     };
     void setState(VoidCallback f) {
