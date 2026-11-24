@@ -48,7 +48,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -x
-          cp build/app/outputs/flutter-apk/app-debug.apk gleba.apk
+          df -h . || true
+          # The runner disk is nearly full after the Gradle build; free it
+          # before writing anything (a full disk kills the step without logs).
+          rm -rf ~/.gradle/caches build/web build/app/intermediates /usr/share/dotnet /opt/ghc || true
+          df -h . || true
+          mv build/app/outputs/flutter-apk/app-debug.apk gleba.apk
           notes="Sestaveno z ${GITHUB_SHA::7}: $(git log -1 --pretty=%s)"
           gh release delete latest --cleanup-tag --yes || true
           gh release create latest gleba.apk --target "$GITHUB_SHA" --prerelease \
