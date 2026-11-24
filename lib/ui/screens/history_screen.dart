@@ -24,7 +24,7 @@ class HistoryScreen extends ConsumerWidget {
     final seenRestore = <String>{};
     for (final e in events) {
       if (e.type == HistoryType.restored) seenRestore.add(e.itemId);
-      if (e.isRemoval && seenRestore.contains(e.itemId)) restoredAfter.add(e.id);
+      if (e.canPutBack && seenRestore.contains(e.itemId)) restoredAfter.add(e.id);
     }
 
     final today = dateOnly(DateTime.now());
@@ -54,6 +54,7 @@ class HistoryScreen extends ConsumerWidget {
         HistoryType.frozen => ('❄️', l.histFrozen),
         HistoryType.edited => ('✏️', l.histEdited),
         HistoryType.restored => ('↩️', l.histRestored),
+        HistoryType.deleted => ('❌', l.histDeleted),
       };
       final qty = e.quantity == null
           ? ''
@@ -69,7 +70,7 @@ class HistoryScreen extends ConsumerWidget {
         ),
         title: Text(e.name),
         subtitle: Text('$label$qty · ${[if (e.byName?.isNotEmpty ?? false) e.byName!, time].join(' · ')}'),
-        trailing: e.isRemoval && !restoredAfter.contains(e.id)
+        trailing: e.canPutBack && !restoredAfter.contains(e.id)
             ? TextButton(
                 onPressed: () async {
                   final h = ref.read(activeHouseholdProvider);

@@ -3,7 +3,7 @@ library;
 
 import 'models.dart';
 
-enum HistoryType { added, consumed, discarded, opened, frozen, edited, restored }
+enum HistoryType { added, consumed, discarded, opened, frozen, edited, restored, deleted }
 
 class HistoryEvent {
   const HistoryEvent({
@@ -39,6 +39,9 @@ class HistoryEvent {
 
   /// Eaten or thrown away – can be put back into the fridge.
   bool get isRemoval => type == HistoryType.consumed || type == HistoryType.discarded;
+
+  /// Can be put back into the fridge from the history.
+  bool get canPutBack => isRemoval || type == HistoryType.deleted;
 
   factory HistoryEvent.forItem(PantryItem item, HistoryType type,
           {String? by, String? byName, double? quantity, DateTime? at}) =>

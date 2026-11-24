@@ -6,7 +6,8 @@ enum DateType { useBy, bestBefore }
 
 enum LocationType { fridge, freezer, pantry, other }
 
-enum ItemStatus { active, consumed, discarded }
+/// [deleted]: removed as a mistake (wrong scan, duplicate) – not counted in statistics.
+enum ItemStatus { active, consumed, discarded, deleted }
 
 enum ItemSource { scan, gs1, receipt, manual, leftover }
 

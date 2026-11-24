@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gleba/domain/history.dart';
 import 'package:gleba/app.dart';
 import 'package:gleba/app_state.dart';
 import 'package:gleba/data/demo_repository.dart';
@@ -90,6 +91,48 @@ void main() {
     await settle(tester);
     final rules = await repo.watchNotificationRules('demo').first;
     expect(rules.single.targetId, anyOf('milk', 'milkUht'));
+  });
+
+  testWidgets('an item added by mistake can be deleted and undone', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.localesTestValue = const [Locale('cs')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    final auth = DemoAuthService();
+    final repo = DemoRepository();
+    await auth.signInWithGoogle();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        isDemoProvider.overrideWithValue(true),
+        authServiceProvider.overrideWithValue(auth),
+        repositoryProvider.overrideWithValue(repo),
+      ],
+      child: const GlebaApp(),
+    ));
+    await settle(tester);
+    await tester.tap(find.text('Spotřebuj nejdřív'));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).first);
+    final tile = find.ancestor(of: find.text('Máslo'), matching: find.byType(ListTile));
+    await tester.ensureVisible(tile);
+    await settle(tester);
+    await tester.tapAt(tester.getTopLeft(tile) + const Offset(30, 20));
+    await settle(tester);
+
+    await tester.tap(find.byTooltip('Smazat (přidáno omylem)'));
+    await settle(tester);
+    expect(find.text('Smazáno: Máslo'), findsOneWidget);
+    expect(find.text('Máslo'), findsNothing);
+    final events = await repo.fetchEvents('home');
+    expect(events.first.type, HistoryType.deleted);
+    expect(events.first.isRemoval, isFalse); // not in the statistics
+
+    await tester.tap(find.text('Zpět'));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('Máslo'), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Máslo'), findsOneWidget);
   });
 
   testWidgets('used up butter can be undone and shows in history', (tester) async {

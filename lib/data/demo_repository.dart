@@ -185,6 +185,14 @@ class DemoRepository implements GlebaRepository {
   }
 
   @override
+  Future<String> deleteItem(String householdId, PantryItem item, GlebaUser by) async {
+    _items[householdId]?[item.id] = item.copyWith(status: ItemStatus.deleted);
+    _log(householdId, HistoryEvent.forItem(item, HistoryType.deleted, by: by.uid, byName: by.shortName, quantity: item.quantity));
+    _changed();
+    return _events[householdId]!.first.id;
+  }
+
+  @override
   Future<void> undoFinish(String householdId, PantryItem original, String eventId) async {
     _items[householdId]?[original.id] = original;
     _events[householdId]?.removeWhere((e) => e.id == eventId);

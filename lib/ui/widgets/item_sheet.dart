@@ -118,6 +118,11 @@ class ItemActions {
     }
   }
 
+  Future<void> delete(PantryItem item) async {
+    final eventId = await _repo.deleteItem(_hid, item, _user);
+    _snack(_l.snackDeleted(item.name), () => _repo.undoFinish(_hid, item, eventId));
+  }
+
   Future<void> addToShopping(PantryItem item) async {
     await _repo.addShopping(
       _hid,
@@ -207,6 +212,14 @@ class _ItemSheet extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: l.deleteItem,
+                  icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    actions?.delete(item);
+                  },
                 ),
               ],
             ),

@@ -233,6 +233,25 @@ class FirestoreRepository implements GlebaRepository {
   }
 
   @override
+  Future<String> deleteItem(String householdId, PantryItem item, GlebaUser by) async {
+    final event = _events(householdId).doc();
+    await _local(
+      (_db.batch()
+            ..update(_items(householdId).doc(item.id), {
+              'status': ItemStatus.deleted.name,
+              'updatedAt': FieldValue.serverTimestamp(),
+            })
+            ..set(
+              event,
+              _eventData(HistoryEvent.forItem(item, HistoryType.deleted,
+                  by: by.uid, byName: by.shortName, quantity: item.quantity)),
+            ))
+          .commit(),
+    );
+    return event.id;
+  }
+
+  @override
   Future<void> undoFinish(String householdId, PantryItem original, String eventId) => _local(
     (_db.batch()
           ..update(_items(householdId).doc(original.id), {

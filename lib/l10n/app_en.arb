@@ -330,5 +330,15 @@
   "aiTierFastShort": "fast",
   "aiTierSmartShort": "smart",
   "aiBadAnswer": "The AI kept returning an unreadable answer. Try again or pick another model in Settings → AI assistant.",
-  "aiDetails": "Details"
+  "aiDetails": "Details",
+  "deleteItem": "Delete (added by mistake)",
+  "snackDeleted": "Deleted: {name}",
+  "@snackDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "histDeleted": "Deleted"
 }

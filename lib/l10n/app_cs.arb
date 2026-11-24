@@ -531,5 +531,15 @@
   "aiTierFastShort": "rychlý",
   "aiTierSmartShort": "chytrý",
   "aiBadAnswer": "AI vrátila nečitelnou odpověď ani po opakování. Zkuste to znovu nebo vyberte jiný model v Nastavení → AI asistent.",
-  "aiDetails": "Podrobnosti"
+  "aiDetails": "Podrobnosti",
+  "deleteItem": "Smazat (přidáno omylem)",
+  "snackDeleted": "Smazáno: {name}",
+  "@snackDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "histDeleted": "Smazáno"
 }

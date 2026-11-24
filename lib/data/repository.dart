@@ -58,6 +58,10 @@ abstract class GlebaRepository {
   /// and records a history event. Returns the event id (needed for undo).
   Future<String> finishItem(String householdId, PantryItem item, ItemStatus how, GlebaUser by, {double? quantity});
 
+  /// Removes an item added by mistake (not eaten, not thrown away, so not in
+  /// the statistics). Returns the history event id; [undoFinish] reverts it.
+  Future<String> deleteItem(String householdId, PantryItem item, GlebaUser by);
+
   /// Undo right after [finishItem]: puts the item back exactly as it was and
   /// removes the history event, so statistics stay correct.
   Future<void> undoFinish(String householdId, PantryItem original, String eventId);
