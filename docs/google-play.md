@@ -16,13 +16,13 @@ Podklady pro Play Console. Texty jsou připravené ke zkopírování, grafika je
 | Výchozí jazyk | čeština (cs-CZ), překlad en-US |
 | Aplikace / hra | Aplikace |
 | Zdarma / placená | Zdarma |
-| Balíček (ID aplikace) | `cz.gleba.gleba` |
+| Balíček (ID aplikace) | `com.gleba.food.app` |
 
 ## 2. První build (AAB)
 
 1. GitHub → Actions → **Release (Google Play)** → *Run workflow*. Vznikne artefakt `gleba-release-aab` se souborem `app-release.aab`. Případně pushni tag `v1.0.0`.
 2. Play Console → *Testování → Interní testování* → nové vydání → nahraj `app-release.aab` a přijmi Play App Signing.
-3. **Důležité pro přihlášení přes Google:** Play Console → *Integrita aplikace → Podepisování aplikací* → zkopíruj **SHA-1 a SHA-256 klíče pro podepisování aplikací** (ne upload klíče) a přidej je ve Firebase (Nastavení projektu → Android aplikace `cz.gleba.gleba` → Přidat otisk). Bez nich přihlášení přes Google v aplikaci z Play selže.
+3. **Důležité pro přihlášení přes Google:** Play Console → *Integrita aplikace → Podepisování aplikací* → zkopíruj **SHA-1 a SHA-256 klíče pro podepisování aplikací** (ne upload klíče) a přidej je ve Firebase (Nastavení projektu → Android aplikace `com.gleba.food.app` → Přidat otisk). Bez nich přihlášení přes Google v aplikaci z Play selže.
    - Otisky upload klíče (pro úplnost):
      - SHA-1 `29:50:76:99:3A:14:E1:68:B6:82:73:F2:AF:C3:7D:B4:A8:F2:B1:D6`
      - SHA-256 `52:B7:B7:39:0F:2C:35:D4:A1:C9:36:64:F1:32:2E:46:6E:E1:33:07:53:81:10:34:B4:D1:98:6A:3D:9B:8A:B5`
