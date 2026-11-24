@@ -65,6 +65,7 @@ android {
         release {
             // Play builds use the upload key; without it (local tries) the debug key.
             signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
