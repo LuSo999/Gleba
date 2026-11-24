@@ -47,7 +47,7 @@ jobs:
         with:
           name: gleba-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 14
+          retention-days: 3
 
       # Easy download on the phone: every build of main replaces the APK in
       # the "latest" pre-release (Releases → Nejnovější verze).
