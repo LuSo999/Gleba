@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gleba/ai/ai_client.dart';
 import 'package:gleba/ai/ai_models.dart';
 import 'package:gleba/ai/ai_tasks.dart';
+import 'package:gleba/ai/image_split.dart';
 
 void main() {
   final key = Platform.environment['GEMINI_API_KEY'] ?? '';
@@ -18,18 +19,18 @@ void main() {
   test('benchmark', () async {
     final rows = <String>[];
     for (final m in models) {
-      for (final (fixture, expectSum) in [('receipt_short.png', 364.70), ('receipt_long.jpg', 5932.32)]) {
+      for (final (fixture, expectSum, split) in [('receipt_short.png', 364.70, false), ('receipt_long.jpg', 5932.32, false), ('receipt_long.jpg', 5932.32, true)]) {
         final sw = Stopwatch()..start();
         String row;
         try {
-          final text = await client.run(AiProvider.gemini, DeviceAiKey(key: key, model: m), receiptRequest(img(fixture), 'cs'));
+          final text = await client.run(AiProvider.gemini, DeviceAiKey(key: key, model: m), receiptRequest(split ? splitTallImage(img(fixture)) : [img(fixture)], 'cs'));
           final lines = parseReceipt(text);
           final sum = lines.fold<double>(0, (s, l) => s + (l.price ?? 0));
           final bageta = lines.where((l) => l.name.toLowerCase().contains('bage')).firstOrNull;
           row = 'OK   ${lines.length} items, sum ${sum.toStringAsFixed(2)} (want $expectSum, '
               '${(100 * (sum - expectSum) / expectSum).toStringAsFixed(1)} %)'
               '${bageta == null ? '' : ', bageta ${bageta.quantity} ${bageta.unit} ${bageta.price}'}';
-          if (fixture.contains('long')) {
+          if (split) {
             for (final l in lines) {
               print('     $m | ${l.isFood ? 'F' : '-'} ${l.name} | ${l.quantity} ${l.unit} | ${l.price} | ${l.categoryId}');
             }
@@ -37,7 +38,7 @@ void main() {
         } catch (e) {
           row = 'FAIL ${'$e'.split('\n').first}';
         }
-        rows.add('${m.padRight(28)} ${fixture.padRight(18)} ${'${sw.elapsed.inMilliseconds / 1000}'.padLeft(6)} s  $row');
+        rows.add('${m.padRight(28)} ${(split ? '$fixture/split' : fixture).padRight(24)} ${'${sw.elapsed.inMilliseconds / 1000}'.padLeft(6)} s  $row');
         print(rows.last);
       }
     }

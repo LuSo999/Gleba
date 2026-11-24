@@ -137,10 +137,12 @@ class ReceiptLine {
   String categoryId;
 }
 
-AiRequest receiptRequest(AiImage photo, String lang) => AiRequest(
-      images: [photo],
+/// [parts]: the photo, or the pieces of a long receipt, top to bottom.
+AiRequest receiptRequest(List<AiImage> parts, String lang) {
+  return AiRequest(
+      images: parts,
       prompt: '''
-This is a photo or screenshot of a shopping receipt (often Czech: Lidl, Albert, Billa, Kaufland,
+${parts.length > 1 ? 'The receipt is cut into ${parts.length} consecutive pieces, top to bottom, and neighbouring pieces overlap a little: a line visible at the bottom of one piece and the top of the next is ONE line – list it once.\n' : ''}This is a photo or screenshot of a shopping receipt (often Czech: Lidl, Albert, Billa, Kaufland,
 Penny, Tesco, Globus, Rohlik…). It may be long – read it top to bottom and list EVERY purchased line item.
 - "name": a clear, human-readable product name in ${_lang(lang)}. Receipts abbreviate heavily
   (e.g. "JOG.BIL.OLM 150G" means a white Olma yogurt 150 g, "Čist.vlhč.ubr." means wet wipes)
@@ -170,6 +172,7 @@ Discount lines ("Lidl Plus sleva", "4+2 zdarma", "Sleva", negative amounts), "Ce
         },
       }),
     );
+}
 
 List<ReceiptLine> parseReceipt(String text) {
   final json = decodeJsonObject(text);

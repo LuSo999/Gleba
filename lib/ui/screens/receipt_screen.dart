@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../ai/ai_models.dart';
 import '../../ai/ai_service.dart';
 import '../../ai/ai_tasks.dart';
+import '../../ai/image_split.dart';
 import '../../app_state.dart';
 import '../../domain/models.dart';
 import '../../domain/shelf_life.dart';
@@ -113,7 +114,7 @@ class ReceiptJobNotifier extends Notifier<ReceiptJob> {
       state = ReceiptJob(stage: ReceiptStage.working, startedAt: started);
       final lines = await ai.runParsed(
         AiFeature.receipt,
-        receiptRequest(AiImage(bytes), lang),
+        receiptRequest(await compute(splitTallImage, AiImage(bytes)), lang),
         parseReceipt,
         onRetry: (note) => state = ReceiptJob(stage: ReceiptStage.working, startedAt: DateTime.now(), retry: note),
       );

@@ -9,6 +9,7 @@ import 'package:gleba/ai/ai_client.dart';
 import 'package:gleba/ai/ai_models.dart';
 import 'package:gleba/ai/ai_retry.dart';
 import 'package:gleba/ai/ai_tasks.dart';
+import 'package:gleba/ai/image_split.dart';
 
 const _envKeys = {
   AiProvider.gemini: 'GEMINI_API_KEY',
@@ -71,7 +72,7 @@ void main() {
     final skip = keys.containsKey(p) ? false : 'no ${_envKeys[p]}';
     group(aiProviderNames[p]!, () {
       test('short Lidl receipt (discounts, "6 ks x" on the next line)', () async {
-        final lines = await run(p, AiFeature.receipt, receiptRequest(img('receipt_short.png'), 'cs'), parseReceipt);
+        final lines = await run(p, AiFeature.receipt, receiptRequest(splitTallImage(img('receipt_short.png')), 'cs'), parseReceipt);
         printLines(lines);
         expect(lines.length, inInclusiveRange(6, 8));
         final bageta = lines.firstWhere((l) => l.name.toLowerCase().contains('bage'));
@@ -83,7 +84,7 @@ void main() {
       }, skip: skip, timeout: const Timeout(Duration(minutes: 6)));
 
       test('long Lidl receipt (~95 lines, low resolution)', () async {
-        final lines = await run(p, AiFeature.receipt, receiptRequest(img('receipt_long.jpg'), 'cs'), parseReceipt);
+        final lines = await run(p, AiFeature.receipt, receiptRequest(splitTallImage(img('receipt_long.jpg')), 'cs'), parseReceipt);
         printLines(lines);
         expect(lines.length, greaterThan(70));
       }, skip: skip, timeout: const Timeout(Duration(minutes: 8)));
