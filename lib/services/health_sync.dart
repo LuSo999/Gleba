@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/repository.dart';
 import '../domain/history.dart';
 import '../domain/models.dart';
+import '../domain/nutrition_estimates.dart';
 import 'health_service.dart';
 
 /// Writes to this phone's Health Connect the shares of food that someone
@@ -11,7 +12,8 @@ class HealthSync {
   static const _key = 'health.syncedEvents';
   static bool _running = false;
 
-  static Future<int> run(GlebaRepository repo, String householdId, String uid, SharedPreferences? prefs) async {
+  static Future<int> run(GlebaRepository repo, String householdId, String uid, SharedPreferences? prefs,
+      {bool estimate = true}) async {
     if (_running || !HealthService.supported) return 0;
     _running = true;
     try {
@@ -21,9 +23,13 @@ class HealthSync {
       for (final e in events) {
         final share = e.eaters?[uid] ?? 0;
         if (e.type != HistoryType.consumed || e.by == uid || share <= 0) continue;
-        if (e.grams == null || e.nutrition == null || done.contains(e.id)) continue;
-        final item = PantryItem(id: e.itemId, name: e.name, categoryId: e.categoryId, expiryDate: e.at, nutrition: e.nutrition);
-        if (await HealthService.instance.writeEaten(item, e.grams! * share, at: e.at)) wrote++;
+        final nutrition = e.nutrition ?? (estimate ? estimatedNutrition(e.categoryId) : null);
+        if (e.grams == null || nutrition == null || done.contains(e.id)) continue;
+        final item = PantryItem(id: e.itemId, name: e.name, categoryId: e.categoryId, expiryDate: e.at);
+        if (await HealthService.instance
+            .writeEaten(item, e.grams! * share, at: e.at, nutrition: nutrition, estimated: e.nutrition == null)) {
+          wrote++;
+        }
         done.add(e.id);
       }
       // Keep the list short: only ids of the last few days matter.

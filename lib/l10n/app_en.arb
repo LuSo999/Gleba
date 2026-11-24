@@ -407,5 +407,21 @@
   "bulkDelete": "Delete",
   "aiReport": "Report an inappropriate answer",
   "editItem": "Edit",
-  "priceCzk": "Price (CZK)"
+  "priceCzk": "Price (CZK)",
+  "healthEstimate": "Estimate food without nutrition",
+  "healthEstimateText": "Food without label values (typed in, from a receipt) goes to Health with a category estimate, marked (~).",
+  "healthNoNutrition": "{name}: not written to Health, no nutrition values. Add them in Edit.",
+  "@healthNoNutrition": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "healthWrittenEstimate": "💚 Written to Health (category estimate)",
+  "nutritionPer100": "Nutrition per 100 g",
+  "nutritionFromLabel": "From label (AI)",
+  "nutrProtein": "Protein g",
+  "nutrCarbs": "Carbs g",
+  "nutrFat": "Fat g"
 }

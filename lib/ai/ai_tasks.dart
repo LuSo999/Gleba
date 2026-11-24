@@ -192,6 +192,41 @@ List<ReceiptLine> parseReceipt(String text) {
   ];
 }
 
+// ---- Nutrition table from a photo of the label --------------------------------
+
+AiRequest nutritionRequest(AiImage photo) => AiRequest(
+      images: [photo],
+      prompt: 'This is a photo of the nutrition table on a food package. Give the values per 100 g '
+          '(or per 100 ml). If the table only has values per serving, convert them using the serving size. '
+          '"kcal" is energy in kcal (not kJ). Grams for protein, carbs, sugar, fat, fiber and salt. '
+          '"packageGrams" is the net weight of the whole package if printed, else -1. '
+          'Use -1 for any value that is not on the label.',
+      schema: _obj({
+        for (final k in ['kcal', 'protein', 'carbs', 'sugar', 'fat', 'fiber', 'salt', 'packageGrams']) k: {'type': 'number'},
+      }),
+    );
+
+Nutrition parseNutrition(String text) {
+  final j = decodeJsonObject(text);
+  double? v(String k) {
+    final x = (j[k] as num?)?.toDouble();
+    return x == null || x < 0 ? null : x;
+  }
+
+  final n = Nutrition(
+    kcal: v('kcal'),
+    protein: v('protein'),
+    carbs: v('carbs'),
+    sugar: v('sugar'),
+    fat: v('fat'),
+    fiber: v('fiber'),
+    salt: v('salt'),
+    packageGrams: v('packageGrams'),
+  );
+  if (n.kcal == null) throw const AiException('empty', transient: true);
+  return n;
+}
+
 // ---- Product from a photo of the package -------------------------------------
 
 AiRequest productRequest(AiImage photo, String lang) => AiRequest(

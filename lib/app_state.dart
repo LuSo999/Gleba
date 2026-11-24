@@ -121,7 +121,11 @@ class AppSettings {
     this.shareToOff,
     this.healthWrite = false,
     this.askWhoAte = true,
+    this.healthEstimate = true,
   });
+
+  /// Food without label nutrition goes to Health with a category estimate.
+  final bool healthEstimate;
 
   /// "Who ate it?" after Eaten (households with more members).
   final bool askWhoAte;
@@ -152,6 +156,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
       shareToOff: _prefs?.getBool('shareToOff'),
       healthWrite: _prefs?.getBool('healthWrite') ?? false,
       askWhoAte: _prefs?.getBool('askWhoAte') ?? true,
+      healthEstimate: _prefs?.getBool('healthEstimate') ?? true,
     );
   }
 
@@ -163,6 +168,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
     bool? share,
     bool? health,
     bool? whoAte,
+    bool? estimate,
   }) => AppSettings(
     locale: clearLocale ? null : (locale ?? state.locale),
     animations: animations ?? state.animations,
@@ -170,7 +176,13 @@ class SettingsNotifier extends Notifier<AppSettings> {
     shareToOff: share ?? state.shareToOff,
     healthWrite: health ?? state.healthWrite,
     askWhoAte: whoAte ?? state.askWhoAte,
+    healthEstimate: estimate ?? state.healthEstimate,
   );
+
+  void setHealthEstimate(bool v) {
+    _prefs?.setBool('healthEstimate', v);
+    state = _copy(estimate: v);
+  }
 
   void setAskWhoAte(bool v) {
     _prefs?.setBool('askWhoAte', v);
@@ -211,6 +223,7 @@ final householdUpkeepProvider = Provider<void>((ref) {
   final h = ref.watch(activeHouseholdProvider);
   final user = ref.watch(userProvider).value;
   final health = ref.watch(settingsProvider.select((s) => s.healthWrite));
+  final estimate = ref.read(settingsProvider).healthEstimate;
   if (h == null || user == null) return;
   final repo = ref.read(repositoryProvider);
   final name = user.shortName;
@@ -220,6 +233,6 @@ final householdUpkeepProvider = Provider<void>((ref) {
         await repo.setMemberName(h.id, user.uid, name);
       } catch (_) {}
     }
-    if (health) await HealthSync.run(repo, h.id, user.uid, ref.read(sharedPrefsProvider));
+    if (health) await HealthSync.run(repo, h.id, user.uid, ref.read(sharedPrefsProvider), estimate: estimate);
   });
 });

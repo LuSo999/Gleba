@@ -98,6 +98,15 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
             ),
+          if (HealthService.supported && s.healthWrite)
+            SwitchListTile(
+              secondary: const Text('≈', style: TextStyle(fontSize: 22)),
+              title: Text(l.healthEstimate),
+              subtitle: Text(l.healthEstimateText),
+              isThreeLine: true,
+              value: s.healthEstimate,
+              onChanged: n.setHealthEstimate,
+            ),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: Text(l.notifications),

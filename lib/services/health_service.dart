@@ -53,8 +53,10 @@ class HealthService {
         _ => MealType.SNACK,
       };
 
-  Future<bool> writeEaten(PantryItem item, double grams, {DateTime? at}) async {
-    final n = item.nutrition;
+  /// [nutrition] overrides the item's (e.g. a category estimate; then
+  /// [estimated] marks the entry's name).
+  Future<bool> writeEaten(PantryItem item, double grams, {DateTime? at, Nutrition? nutrition, bool estimated = false}) async {
+    final n = nutrition ?? item.nutrition;
     if (n == null || !supported) return false;
     await _configure();
     final v = n.forGrams(grams);
@@ -64,7 +66,7 @@ class HealthService {
         mealType: mealTypeAt(now),
         startTime: now.subtract(const Duration(minutes: 1)),
         endTime: now,
-        name: item.name,
+        name: estimated ? '${item.name} (~)' : item.name,
         caloriesConsumed: v.kcal,
         protein: v.protein,
         carbohydrates: v.carbs,

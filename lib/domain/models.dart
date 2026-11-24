@@ -2,6 +2,8 @@
 /// so everything here is unit-testable and shared by all data sources.
 library;
 
+import 'nutrition_estimates.dart';
+
 enum DateType { useBy, bestBefore }
 
 enum LocationType { fridge, freezer, pantry, other }
@@ -122,6 +124,8 @@ class PantryItem {
     ItemStatus? status,
     DateTime? checkedAt,
     bool? runningLow,
+    Nutrition? nutrition,
+    bool clearNutrition = false,
   }) => PantryItem(
     id: id,
     name: name ?? this.name,
@@ -145,7 +149,7 @@ class PantryItem {
     addedAt: addedAt,
     householdId: householdId,
     checkedAt: checkedAt ?? this.checkedAt,
-    nutrition: nutrition,
+    nutrition: clearNutrition ? null : (nutrition ?? this.nutrition),
     runningLow: runningLow ?? this.runningLow,
   );
 
@@ -281,7 +285,7 @@ class Nutrition {
 double gramsEaten(PantryItem item, double quantity) => switch (item.unit) {
   'g' || 'ml' => quantity,
   'kg' || 'l' => quantity * 1000,
-  _ => quantity * (item.nutrition?.servingGrams ?? item.nutrition?.packageGrams ?? 100),
+  _ => quantity * (item.nutrition?.servingGrams ?? item.nutrition?.packageGrams ?? typicalPieceGrams(item.categoryId)),
 };
 
 class Household {

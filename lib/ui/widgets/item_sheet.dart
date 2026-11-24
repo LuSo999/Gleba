@@ -8,6 +8,7 @@ import '../../domain/freshness.dart';
 import '../../domain/history.dart';
 import '../../domain/models.dart';
 import '../../domain/notification_rules.dart';
+import '../../domain/nutrition_estimates.dart';
 import '../../domain/shelf_life.dart';
 import '../../domain/shopping.dart';
 import '../../services/health_service.dart';
@@ -48,7 +49,7 @@ Future<void> restock(GlebaRepository repo, String hid, GlebaUser by, {List<Stock
 /// front, so the actions keep working after the bottom sheet is closed.
 class ItemActions {
   ItemActions._(this._repo, this._household, this._user, this._anim, this._overlay, this._messenger, this._l,
-      this._health, this._askWhoAte);
+      this._health, this._askWhoAte, this._estimate);
 
   static ItemActions? of(BuildContext host, WidgetRef ref) {
     final household = ref.read(activeHouseholdProvider);
@@ -64,6 +65,7 @@ class ItemActions {
       AppLocalizations.of(host),
       ref.read(settingsProvider).healthWrite && HealthService.supported,
       ref.read(settingsProvider).askWhoAte,
+      ref.read(settingsProvider).healthEstimate,
     );
   }
 
@@ -71,6 +73,13 @@ class ItemActions {
   final Household _household;
   String get _hid => _household.id;
   final bool _askWhoAte;
+  final bool _estimate;
+
+  /// Label nutrition, else (if allowed) the category estimate.
+  Nutrition? _nutritionOf(PantryItem i) => i.nutrition ?? (_estimate ? estimatedNutrition(i.categoryId) : null);
+
+  Future<bool> _write(PantryItem i, double grams) => HealthService.instance
+      .writeEaten(i, grams, nutrition: _nutritionOf(i), estimated: i.nutrition == null);
   final GlebaUser _user;
   final bool _anim;
   final OverlayState? _overlay;
@@ -125,14 +134,15 @@ class ItemActions {
       eaten ? _l.snackConsumed(label) : _l.snackDiscarded(label),
       () => _repo.undoFinish(_hid, item, eventId),
     );
-    if (eaten && _health && item.nutrition != null) {
-      if (asksWhoAte) {
+    if (eaten && _health) {
+      final mine = asksWhoAte ? (eaters![_user.uid] ?? 0) : 1.0;
+      if (mine <= 0) return;
+      if (_nutritionOf(item) == null) {
+        _messenger?.showSnackBar(SnackBar(content: Text(_l.healthNoNutrition(item.name))));
+      } else if (asksWhoAte) {
         // The split was just chosen: my share goes to Health right away; the
         // others' phones write theirs (HealthSync).
-        final mine = eaters![_user.uid] ?? 0;
-        if (mine > 0 && await HealthService.instance.writeEaten(item, gramsEaten(item, q) * mine)) {
-          _messenger?.showSnackBar(SnackBar(content: Text(_l.healthWritten)));
-        }
+        if (await _write(item, gramsEaten(item, q) * mine)) _healthDone(item);
       } else {
         await _logToHealth(item, gramsEaten(item, q));
       }
@@ -168,8 +178,8 @@ class ItemActions {
     final mine = eaters?[_user.uid] ?? 0;
     if (eaten && _health && mine > 0) {
       var wrote = false;
-      for (final i in items.where((i) => i.nutrition != null)) {
-        wrote = await HealthService.instance.writeEaten(i, gramsEaten(i, i.quantity) * mine) || wrote;
+      for (final i in items.where((i) => _nutritionOf(i) != null)) {
+        wrote = await _write(i, gramsEaten(i, i.quantity) * mine) || wrote;
       }
       if (wrote) _messenger?.showSnackBar(SnackBar(content: Text(_l.healthWritten)));
     }
@@ -219,13 +229,15 @@ class ItemActions {
       context: ctx,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) => _HealthSheet(item: item, grams: grams),
+      builder: (_) => _HealthSheet(item: item, grams: grams, nutrition: _nutritionOf(item)!),
     );
     if (eaten == null || eaten <= 0) return;
-    if (await HealthService.instance.writeEaten(item, eaten)) {
-      _messenger?.showSnackBar(SnackBar(content: Text(_l.healthWritten)));
-    }
+    if (await _write(item, eaten)) _healthDone(item);
   }
+
+  void _healthDone(PantryItem item) => _messenger?.showSnackBar(
+        SnackBar(content: Text(item.nutrition == null ? _l.healthWrittenEstimate : _l.healthWritten)),
+      );
 
   Future<void> delete(PantryItem item) async {
     final eventId = await _repo.deleteItem(_hid, item, _user);
@@ -534,10 +546,11 @@ class _ItemSheet extends ConsumerWidget {
 }
 
 class _HealthSheet extends StatefulWidget {
-  const _HealthSheet({required this.item, required this.grams});
+  const _HealthSheet({required this.item, required this.grams, required this.nutrition});
 
   final PantryItem item;
   final double grams;
+  final Nutrition nutrition;
 
   @override
   State<_HealthSheet> createState() => _HealthSheetState();
@@ -556,7 +569,7 @@ class _HealthSheetState extends State<_HealthSheet> {
   Widget build(BuildContext context) {
     final l = context.l;
     final g = double.tryParse(_ctl.text.replaceAll(',', '.')) ?? 0;
-    final v = widget.item.nutrition!.forGrams(g);
+    final v = widget.nutrition.forGrams(g);
     String r(double? x) => x == null ? '–' : x.round().toString();
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(context).bottom + 20),

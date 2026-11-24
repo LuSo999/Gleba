@@ -608,5 +608,21 @@
   "bulkDelete": "Smazat",
   "aiReport": "Nahlásit nevhodnou odpověď",
   "editItem": "Upravit",
-  "priceCzk": "Cena (Kč)"
+  "priceCzk": "Cena (Kč)",
+  "healthEstimate": "Odhadnout jídlo bez nutričních hodnot",
+  "healthEstimateText": "Když jídlo nemá hodnoty z etikety (zadané ručně, z účtenky), zapíše se do Health přibližně podle kategorie a označí se (~).",
+  "healthNoNutrition": "{name}: do Health nezapsáno, chybí nutriční hodnoty. Doplňte je v Upravit.",
+  "@healthNoNutrition": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "healthWrittenEstimate": "💚 Zapsáno do Health (odhad podle kategorie)",
+  "nutritionPer100": "Nutriční hodnoty na 100 g",
+  "nutritionFromLabel": "Z etikety (AI)",
+  "nutrProtein": "Bílkoviny g",
+  "nutrCarbs": "Sacharidy g",
+  "nutrFat": "Tuky g"
 }

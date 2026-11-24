@@ -1,4 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../ai/ai_models.dart';
+import '../../ai/ai_service.dart';
+import '../../ai/ai_tasks.dart';
+import '../../services/ocr_service.dart';
 
 import '../../domain/models.dart';
 import '../../domain/shelf_life.dart';
@@ -13,16 +19,16 @@ Future<PantryItem?> showEditItemSheet(BuildContext context, PantryItem item) => 
       builder: (_) => EditItemSheet(item: item),
     );
 
-class EditItemSheet extends StatefulWidget {
+class EditItemSheet extends ConsumerStatefulWidget {
   const EditItemSheet({super.key, required this.item});
 
   final PantryItem item;
 
   @override
-  State<EditItemSheet> createState() => _EditItemSheetState();
+  ConsumerState<EditItemSheet> createState() => _EditItemSheetState();
 }
 
-class _EditItemSheetState extends State<EditItemSheet> {
+class _EditItemSheetState extends ConsumerState<EditItemSheet> {
   final _form = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.item.name);
   late final _brand = TextEditingController(text: widget.item.brand ?? '');
@@ -33,6 +39,60 @@ class _EditItemSheetState extends State<EditItemSheet> {
   late String _unit = widget.item.unit;
   late DateType _dateType = widget.item.dateType;
   late DateTime _expiry = widget.item.expiryDate;
+  late final _kcal = TextEditingController(text: _n(widget.item.nutrition?.kcal));
+  late final _protein = TextEditingController(text: _n(widget.item.nutrition?.protein));
+  late final _carbs = TextEditingController(text: _n(widget.item.nutrition?.carbs));
+  late final _fat = TextEditingController(text: _n(widget.item.nutrition?.fat));
+  late Nutrition? _labelNutrition = widget.item.nutrition;
+  bool _reading = false;
+
+  static String _n(double? v) => v == null ? '' : _fmt(double.parse(v.toStringAsFixed(1)));
+
+  /// Photo of the nutrition table → AI reads it into the fields.
+  Future<void> _readLabel() async {
+    final l = context.l;
+    final messenger = ScaffoldMessenger.of(context);
+    final ai = ref.read(aiServiceProvider);
+    if (!ai.enabledFor(AiFeature.product)) {
+      messenger.showSnackBar(SnackBar(content: Text(l.aiNoProvider)));
+      return;
+    }
+    final photo = await OcrService.capture();
+    if (photo == null || !mounted) return;
+    setState(() => _reading = true);
+    try {
+      final n = await ai.runParsed(AiFeature.product, nutritionRequest(AiImage.detect(await photo.readAsBytes())), parseNutrition);
+      if (!mounted) return;
+      setState(() {
+        _labelNutrition = n;
+        _kcal.text = _n(n.kcal);
+        _protein.text = _n(n.protein);
+        _carbs.text = _n(n.carbs);
+        _fat.text = _n(n.fat);
+      });
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.aiError('$e'))));
+    } finally {
+      if (mounted) setState(() => _reading = false);
+    }
+  }
+
+  Nutrition? _nutrition() {
+    final kcal = _num(_kcal.text);
+    if (kcal == null) return null;
+    final base = _labelNutrition;
+    return Nutrition(
+      kcal: kcal,
+      protein: _num(_protein.text),
+      carbs: _num(_carbs.text),
+      fat: _num(_fat.text),
+      sugar: base?.sugar,
+      fiber: base?.fiber,
+      salt: base?.salt,
+      servingGrams: base?.servingGrams,
+      packageGrams: base?.packageGrams,
+    );
+  }
 
   static String _fmt(double v) => v == v.roundToDouble() ? '${v.round()}' : '$v';
 
@@ -49,6 +109,10 @@ class _EditItemSheetState extends State<EditItemSheet> {
     _brand.dispose();
     _qty.dispose();
     _price.dispose();
+    _kcal.dispose();
+    _protein.dispose();
+    _carbs.dispose();
+    _fat.dispose();
     super.dispose();
   }
 
@@ -58,6 +122,7 @@ class _EditItemSheetState extends State<EditItemSheet> {
     final brand = _brand.text.trim();
     final price = _num(_price.text);
     final moved = _location != _placeOf(i);
+    final nutrition = _nutrition();
     Navigator.pop(
       context,
       i.copyWith(
@@ -73,6 +138,8 @@ class _EditItemSheetState extends State<EditItemSheet> {
         expiryDate: _expiry,
         price: price,
         clearPrice: price == null,
+        nutrition: nutrition,
+        clearNutrition: nutrition == null,
       ),
     );
   }
@@ -181,6 +248,35 @@ class _EditItemSheetState extends State<EditItemSheet> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(labelText: l.priceCzk),
                 ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(child: Text(l.nutritionPer100, style: theme.textTheme.labelLarge)),
+                  _reading
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton.icon(
+                          onPressed: _readLabel,
+                          icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                          label: Text(l.nutritionFromLabel),
+                        ),
+                ]),
+                const SizedBox(height: 4),
+                Row(children: [
+                  for (final (ctl, label) in [
+                    (_kcal, 'kcal'),
+                    (_protein, l.nutrProtein),
+                    (_carbs, l.nutrCarbs),
+                    (_fat, l.nutrFat),
+                  ]) ...[
+                    Expanded(
+                      child: TextFormField(
+                        controller: ctl,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(labelText: label, isDense: true),
+                      ),
+                    ),
+                    if (ctl != _fat) const SizedBox(width: 8),
+                  ],
+                ]),
                 const SizedBox(height: 20),
                 Row(
                   children: [
