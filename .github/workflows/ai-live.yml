@@ -4,6 +4,11 @@ name: AI live test
 # providers whose keys are stored as repository secrets. Manual only.
 on:
   workflow_dispatch:
+    inputs:
+      bench_models:
+        description: 'Comma-separated Gemini models to benchmark (empty = normal live test)'
+        required: false
+        default: ''
 
 jobs:
   live:
@@ -20,4 +25,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: flutter test test_ai --reporter expanded
+          BENCH_MODELS: ${{ inputs.bench_models }}
+        run: |
+          if [ -n "$BENCH_MODELS" ]; then
+            flutter test test_ai/bench_test.dart --reporter expanded
+          else
+            flutter test test_ai/live_ai_test.dart --reporter expanded
+          fi
