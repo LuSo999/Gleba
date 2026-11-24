@@ -5,6 +5,9 @@ on:
     branches: [main, 'claude/**']
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,6 +39,23 @@ jobs:
           name: gleba-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
+
+      # Easy download on the phone: every build of main replaces the APK in
+      # the "latest" pre-release (Releases → Nejnovější verze).
+      - name: Publish APK to the 'latest' release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-debug.apk gleba.apk
+          git tag -f latest && git push -f origin latest
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest gleba.apk --clobber
+            gh release edit latest --notes "Sestaveno z $(git rev-parse --short HEAD): $(git log -1 --pretty=%s)"
+          else
+            gh release create latest gleba.apk --prerelease --title "Nejnovější verze" \
+              --notes "Sestaveno z $(git rev-parse --short HEAD): $(git log -1 --pretty=%s)"
+          fi
 
   functions:
     runs-on: ubuntu-latest
