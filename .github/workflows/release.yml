@@ -76,5 +76,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT }}
           packageName: com.gleba.food.app
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
-          track: ${{ github.event.inputs.track || 'internal' }}
+          tracks: ${{ github.event.inputs.track || 'internal' }}
           status: draft
