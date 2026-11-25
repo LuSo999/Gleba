@@ -127,3 +127,6 @@ Recepty a jídelníček generuje AI s klíčem uživatele. U odpovědi je tlač�
 
 ## 6. Před produkcí
 Google u nových osobních vývojářských účtů vyžadoval před vydáním do produkce **uzavřený test s alespoň 12 testery po dobu 14 dní**. Přesný aktuální požadavek ukáže Play Console na hlavním panelu. Postup: Interní testování → Uzavřené testování (alfa) → Produkce.
+
+## 7. Poznámky k vydání (Co je nového)
+Texty jsou v `distribution/whatsnew/whatsnew-cs-CZ` a `whatsnew-en-US` (max. 500 znaků na jazyk). Workflow Release je při každém nahrání pošle do Play. Před releasem je aktualizuj.

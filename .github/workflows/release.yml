@@ -78,3 +78,5 @@ jobs:
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           tracks: ${{ github.event.inputs.track || 'internal' }}
           status: draft
+          # Release notes shown in Play (max 500 characters per language).
+          whatsNewDirectory: distribution/whatsnew
