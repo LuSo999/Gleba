@@ -6,6 +6,7 @@ name: Deploy to Firebase
 on:
   push:
     branches: [main]
+    paths-ignore: ['docs/**', '**.md', 'distribution/**', 'android/**', '.github/workflows/ci.yml', '.github/workflows/release.yml', 'test/**', 'test_ai/**']
   workflow_dispatch:
 
 concurrency: deploy

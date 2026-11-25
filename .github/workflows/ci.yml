@@ -2,8 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, 'claude/**']
+    # Only main: the work branch is pushed together with main, building both
+    # just doubled the Actions minutes.
+    branches: [main]
+    paths-ignore: ['docs/**', '**.md', 'distribution/**']
   pull_request:
+    paths-ignore: ['docs/**', '**.md', 'distribution/**']
+  workflow_dispatch:
 
 permissions:
   contents: write
