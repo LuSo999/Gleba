@@ -139,6 +139,12 @@ class BatchJob extends Notifier<int> {
   /// The product whose date photo is expected next.
   String? awaitingDateFor;
 
+  /// The next photo replaces this one (product id, date side or barcode side).
+  ({String id, bool date})? retake;
+
+  /// Receipt lines the user removed from the review.
+  final hiddenLines = <int>{};
+
   Future<void> _queue = Future.value();
   int _seq = 0;
 
@@ -171,6 +177,103 @@ class BatchJob extends Notifier<int> {
     p.datePath = path;
     _touch();
     _enqueue(() => _readDate(p));
+  }
+
+  /// The next shot replaces the barcode (or date) photo of [id].
+  void setRetake(String id, {required bool date}) {
+    retake = (id: id, date: date);
+    _touch();
+  }
+
+  void cancelRetake() {
+    retake = null;
+    _touch();
+  }
+
+  /// A shot taken while [retake] is set: replace the photo and read it again.
+  void replacePhoto(String path) {
+    final r = retake;
+    retake = null;
+    final p = products.where((x) => x.id == r?.id).firstOrNull;
+    if (r == null || p == null) return;
+    edits.remove('p:${p.id}');
+    if (r.date) {
+      p
+        ..datePath = path
+        ..skipDate = false
+        ..expiry = null
+        ..dateType = null
+        ..dateSource = null
+        ..dateState = ShotState.processing;
+      if (awaitingDateFor == p.id) awaitingDateFor = null;
+      _touch();
+      _enqueue(() => _readDate(p));
+    } else {
+      final keepDate = p.dateSource != DateSource.code;
+      p
+        ..barcodePath = path
+        ..ean = null
+        ..name = ''
+        ..brand = null
+        ..categoryId = 'other'
+        ..nutrition = null
+        ..locationType = null
+        ..shelfLifeDays = null
+        ..productSource = ProductSource.unknown
+        ..productState = ShotState.processing;
+      if (!keepDate) {
+        p
+          ..expiry = null
+          ..dateSource = null
+          ..dateState = p.datePath == null ? ShotState.done : ShotState.processing;
+      }
+      _touch();
+      _enqueue(() async {
+        await _readProduct(p);
+        if (!keepDate && p.datePath != null) await _readDate(p);
+      });
+    }
+  }
+
+  /// Removes a review row (a product with its photos, or a receipt line);
+  /// returns what puts it back.
+  void Function() removeRow(ReviewRow row) {
+    final p = row.product;
+    if (p != null) {
+      final at = products.indexOf(p);
+      products.remove(p);
+      if (awaitingDateFor == p.id) awaitingDateFor = null;
+      _touch();
+      return () {
+        products.insert(at.clamp(0, products.length), p);
+        _touch();
+      };
+    }
+    final i = row.lineIndex!;
+    hiddenLines.add(i);
+    _touch();
+    return () {
+      hiddenLines.remove(i);
+      _touch();
+    };
+  }
+
+  /// Removes several rows at once; returns what puts them all back.
+  void Function() removeRows(Iterable<ReviewRow> rows) {
+    final undos = [for (final r in rows.toList().reversed) removeRow(r)];
+    return () {
+      for (final u in undos.reversed) {
+        u();
+      }
+    };
+  }
+
+  /// Ticks or unticks every row.
+  void selectAll(bool v) {
+    for (final r in rows()) {
+      selection[r.key] = v;
+    }
+    _touch();
   }
 
   /// "No date": estimated from the category.
@@ -317,6 +420,8 @@ class BatchJob extends Notifier<int> {
     selection.clear();
     edits.clear();
     awaitingDateFor = null;
+    retake = null;
+    hiddenLines.clear();
     _touch();
   }
 
@@ -376,7 +481,7 @@ class BatchJob extends Notifier<int> {
     final paired = pairs.values.toSet();
     if (pairingOn || products.isEmpty) {
       for (var i = 0; i < receiptLines.length; i++) {
-        if (paired.contains(i)) continue;
+        if (paired.contains(i) || hiddenLines.contains(i)) continue;
         final l = receiptLines[i];
         final key = 'r:$i';
         final loc = suggestLocation(l.categoryId);

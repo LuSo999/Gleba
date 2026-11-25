@@ -81,6 +81,21 @@ void main() {
     expect(rows[2].fromReceiptOnly, isTrue);
     expect(job.isSelected(rows[3]), isFalse); // the bag isn't food
 
+    // Retake the yogurt's date photo: it is read again from the new photo.
+    job.setRetake(rows[1].product!.id, date: true);
+    job.replacePhoto(photo('yogurt-date'));
+    while (job.processing > 0) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(job.rows(now: DateTime(2026, 11, 24))[1].dateSource, DateSource.photo);
+
+    // Delete two rows at once, then undo.
+    final two = job.rows().sublist(2, 4);
+    final undo = job.removeRows(two);
+    expect(job.rows().length, 2);
+    undo();
+    expect(job.rows().map((r) => r.key), rows.map((r) => r.key));
+
     final before = (await repo.watchActiveItems('home').first).length;
     expect(await job.save(), 3);
     expect((await repo.watchActiveItems('home').first).length, before + 3);

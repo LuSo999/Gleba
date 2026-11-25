@@ -721,5 +721,37 @@
   "batchPairTitle": "Spárovat s účtenkou",
   "batchPairOn": "Párovat s účtenkou",
   "batchPairOnText": "Vypněte, když jsou fotky z jiného nákupu.",
-  "batchChange": "Změnit"
+  "batchChange": "Změnit",
+  "batchNoPhoto": "Bez fotky",
+  "batchRetakeBarcode": "Přefotit čárový kód",
+  "batchRetakeDate": "Přefotit datum",
+  "batchRetakeAim": "Přefoťte {what}: {name}",
+  "@batchRetakeAim": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "batchSelectAll": "Zaškrtnout vše",
+  "batchSelectNone": "Odškrtnout vše",
+  "batchDeleteChecked": "Smazat zaškrtnuté ({count})",
+  "@batchDeleteChecked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchDeleteUnchecked": "Smazat nezaškrtnuté ({count})",
+  "@batchDeleteUnchecked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

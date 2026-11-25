@@ -520,5 +520,37 @@
   "batchPairTitle": "Pair with the receipt",
   "batchPairOn": "Pair with the receipt",
   "batchPairOnText": "Turn off when the photos are from another shopping trip.",
-  "batchChange": "Change"
+  "batchChange": "Change",
+  "batchNoPhoto": "No photo",
+  "batchRetakeBarcode": "Retake barcode",
+  "batchRetakeDate": "Retake date",
+  "batchRetakeAim": "Retake {what}: {name}",
+  "@batchRetakeAim": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "batchSelectAll": "Tick all",
+  "batchSelectNone": "Untick all",
+  "batchDeleteChecked": "Delete ticked ({count})",
+  "@batchDeleteChecked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "batchDeleteUnchecked": "Delete unticked ({count})",
+  "@batchDeleteUnchecked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

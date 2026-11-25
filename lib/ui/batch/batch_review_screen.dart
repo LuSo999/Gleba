@@ -36,7 +36,37 @@ class BatchReviewScreen extends ConsumerWidget {
         : 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.batchReviewTitle)),
+      appBar: AppBar(
+        title: Text(l.batchReviewTitle),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: l.more,
+            onSelected: (v) {
+              switch (v) {
+                case 'all' || 'none':
+                  job.selectAll(v == 'all');
+                case 'delChecked' || 'delUnchecked':
+                  final gone = rows.where((r) => job.isSelected(r) == (v == 'delChecked')).toList();
+                  if (gone.isEmpty) return;
+                  final undo = job.removeRows(gone);
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(SnackBar(
+                      content: Text(l.snackDeletedMany(gone.length)),
+                      action: SnackBarAction(label: l.undo, onPressed: undo),
+                    ));
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'all', child: Text(l.batchSelectAll)),
+              PopupMenuItem(value: 'none', child: Text(l.batchSelectNone)),
+              const PopupMenuDivider(),
+              PopupMenuItem(value: 'delChecked', child: Text(l.batchDeleteChecked(chosen))),
+              PopupMenuItem(value: 'delUnchecked', child: Text(l.batchDeleteUnchecked(rows.length - rows.where(job.isSelected).length))),
+            ],
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 110),
         children: [
@@ -144,7 +174,22 @@ class _RowTile extends ConsumerWidget {
     const receiptColor = Color(0xFF8A70C2);
     final warn = GlebaColors.freshness(Freshness.soon, theme.brightness);
 
-    return Card(
+    void remove() {
+      final undo = job.removeRow(r);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(l.snackDeleted(r.item.name.isEmpty ? l.batchUnknownProduct : r.item.name)),
+          action: SnackBarAction(label: l.undo, onPressed: undo),
+        ));
+    }
+
+    void retake(bool date) {
+      job.setRetake(p!.id, date: date);
+      context.canPop() ? context.pop() : context.go('/batch');
+    }
+
+    final card = Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: r.busy
@@ -205,9 +250,36 @@ class _RowTile extends ConsumerWidget {
                 ]),
               ]),
             ),
+            PopupMenuButton<String>(
+              tooltip: l.more,
+              onSelected: (v) => switch (v) {
+                'barcode' => retake(false),
+                'date' => retake(true),
+                _ => remove(),
+              },
+              itemBuilder: (_) => [
+                if (p != null) ...[
+                  PopupMenuItem(value: 'barcode', child: Text(l.batchRetakeBarcode)),
+                  PopupMenuItem(value: 'date', child: Text(l.batchRetakeDate)),
+                ],
+                PopupMenuItem(value: 'delete', child: Text(l.deleteItem)),
+              ],
+            ),
           ]),
         ),
       ),
+    );
+    return Dismissible(
+      key: ValueKey(r.key),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(color: theme.colorScheme.errorContainer, borderRadius: BorderRadius.circular(12)),
+        child: Icon(Icons.delete_outline, color: theme.colorScheme.onErrorContainer),
+      ),
+      onDismissed: (_) => remove(),
+      child: card,
     );
   }
 }
