@@ -39,13 +39,18 @@ android {
     }
 
     signingConfigs {
-        // Shared debug key committed to the repo, so local and CI builds all have
-        // the same SHA-1 (registered in Firebase for Google sign-in).
-        getByName("debug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        // Shared debug key, so every CI build has the same SHA-1 (registered in
+        // Firebase for Google sign-in). Never committed: CI writes it from the
+        // GitHub secret GLEBA_DEBUG_KEYSTORE_BASE64; without it (local builds)
+        // the standard ~/.android/debug.keystore is used.
+        val debugStore = System.getenv("GLEBA_DEBUG_STORE_FILE")
+        if (debugStore != null) {
+            getByName("debug") {
+                storeFile = file(debugStore)
+                storePassword = System.getenv("GLEBA_DEBUG_STORE_PASSWORD")
+                keyAlias = "androiddebugkey"
+                keyPassword = System.getenv("GLEBA_DEBUG_STORE_PASSWORD")
+            }
         }
         // Upload key for Google Play. Never committed: CI writes it from the
         // GitHub secrets (see .github/workflows/release.yml), locally it comes

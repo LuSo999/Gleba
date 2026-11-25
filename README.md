@@ -56,9 +56,10 @@ firestore.rules   bezpečnostní pravidla
 7. V `lib/config.dart` upravte `kWebAppUrl` na adresu z Firebase Hosting (kvůli odkazům v pozvánkách).
 
 ### Podpis Android aplikace
-- `android/app/debug.keystore` je **sdílený ladicí klíč** (heslo `android`). Je v repozitáři záměrně, aby každé sestavení (lokálně i na GitHubu) mělo stejný otisk a fungovalo přihlášení Googlem. Otisky registrované ve Firebase:
-  - SHA-1 `27:0B:E0:D7:4E:F1:E0:02:4D:BC:CB:06:0E:8A:41:65:88:DD:8E:34`
-  - SHA-256 `28:A3:82:AB:C2:37:0C:CF:14:E2:EF:3D:54:56:AF:74:ED:B1:25:4F:C6:D3:CE:63:52:04:A4:55:6B:C9:48:FF`
+- **Ladicí klíč** (APK z GitHubu) je jen v GitHub Secrets: `GLEBA_DEBUG_KEYSTORE_BASE64` a `GLEBA_DEBUG_KEYSTORE_PASSWORD` (alias `androiddebugkey`). Každé sestavení na GitHubu tak má stejný otisk a funguje přihlášení Googlem. Otisky registrované ve Firebase:
+  - SHA-1 `0A:7F:09:27:5B:69:2D:AC:F0:2F:CE:7B:AE:6F:4A:15:F0:B4:70:9C`
+  - SHA-256 `83:C1:C8:AA:0F:23:29:5D:1D:4C:05:40:4E:7C:49:69:AE:88:08:71:99:A6:66:7D:77:D3:B1:AB:71:31:1C:E5`
+  Lokální sestavení používají standardní `~/.android/debug.keystore`; pro přihlášení Googlem přidejte jeho otisk do Firebase.
 - Pro vydání na Google Play vytvoříme samostatný **produkční klíč**, který do repozitáře nikdy nepatří (GitHub Secrets).
 
 ### Upozornění (server)

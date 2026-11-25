@@ -15,7 +15,6 @@ key.properties
 
 # Shared *debug* key (not secret) so every build has the same SHA-1 for Firebase/Google sign-in.
 # The release key must never be committed.
-!app/debug.keystore
 
 # Google Play upload key (never commit)
 key.properties
