@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/history.dart';
 import '../domain/meal_plan.dart';
+import '../domain/merge.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import '../domain/shared_products.dart';
@@ -287,6 +288,37 @@ class FirestoreRepository implements GlebaRepository {
     });
     return _local(batch.commit());
   }
+
+  @override
+  Future<void> mergeItems(String householdId, PantryItem keep, List<PantryItem> others) =>
+      _db.runTransaction((tx) async {
+        final keepRef = _items(householdId).doc(keep.id);
+        final keepSnap = await tx.get(keepRef);
+        if (keepSnap.data()?['status'] != ItemStatus.active.name) return;
+        final current = PantryItem.fromMap(keep.id, keepSnap.data()!);
+        final live = <PantryItem>[];
+        for (final o in others) {
+          final snap = await tx.get(_items(householdId).doc(o.id));
+          final d = snap.data();
+          if (d != null && d['status'] == ItemStatus.active.name) live.add(PantryItem.fromMap(o.id, d));
+        }
+        if (live.isEmpty) return;
+        final merged = mergedItem(current, live);
+        tx.update(keepRef, {
+          'quantity': merged.quantity,
+          'price': merged.price,
+          'nutrition': merged.nutrition?.toMap(),
+          'runningLow': merged.runningLow,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        for (final o in live) {
+          tx.update(_items(householdId).doc(o.id), {
+            'status': ItemStatus.deleted.name,
+            'mergedInto': keep.id,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
 
   @override
   Future<void> setMemberName(String householdId, String uid, String name) =>

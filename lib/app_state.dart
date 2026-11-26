@@ -8,6 +8,7 @@ import 'data/open_food_facts.dart';
 import 'data/product_lookup.dart';
 import 'data/repository.dart';
 import 'domain/history.dart';
+import 'domain/merge.dart';
 import 'domain/models.dart';
 import 'domain/notification_rules.dart';
 import 'domain/shopping.dart';
@@ -234,5 +235,26 @@ final householdUpkeepProvider = Provider<void>((ref) {
       } catch (_) {}
     }
     if (health) await HealthSync.run(repo, h.id, user.uid, ref.read(sharedPrefsProvider), estimate: estimate);
+  });
+});
+
+/// The very same food added twice (same name, date, unit, place) becomes one
+/// item. Runs whenever the items change; the repository makes it safe when
+/// two phones do it at once.
+final itemMergeProvider = Provider<void>((ref) {
+  final h = ref.watch(activeHouseholdProvider);
+  final items = ref.watch(itemsProvider).value;
+  if (h == null || items == null) return;
+  final groups = duplicateGroups(items);
+  if (groups.isEmpty) return;
+  final repo = ref.read(repositoryProvider);
+  Future.microtask(() async {
+    for (final g in groups) {
+      try {
+        await repo.mergeItems(h.id, g.first, g.sublist(1));
+      } catch (_) {
+        // Offline: tried again with the next change.
+      }
+    }
   });
 });

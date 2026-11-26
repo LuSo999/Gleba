@@ -73,6 +73,11 @@ abstract class GlebaRepository {
   Future<CookResult> cookMeal(String householdId, List<PantryItem> ingredients, PantryItem meal, GlebaUser by);
   Future<void> undoCook(String householdId, List<PantryItem> ingredients, CookResult result);
 
+  /// Merges [others] into [keep] (the same food: quantities add up); the
+  /// others disappear without a history entry. Safe when two phones try at
+  /// once: items that are no longer active are skipped.
+  Future<void> mergeItems(String householdId, PantryItem keep, List<PantryItem> others);
+
   /// Keeps this member's display name on the household (for "who ate it").
   Future<void> setMemberName(String householdId, String uid, String name);
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../domain/history.dart';
 import '../domain/meal_plan.dart';
+import '../domain/merge.dart';
 import '../domain/models.dart';
 import '../domain/notification_rules.dart';
 import '../domain/shared_products.dart';
@@ -216,6 +217,20 @@ class DemoRepository implements GlebaRepository {
     }
     _events[householdId]?.removeWhere((e) => result.eventIds.contains(e.id));
     _items[householdId]?.remove(result.mealId);
+    _changed();
+  }
+
+  @override
+  Future<void> mergeItems(String householdId, PantryItem keep, List<PantryItem> others) async {
+    final items = _items[householdId];
+    final current = items?[keep.id];
+    if (items == null || current == null || current.status != ItemStatus.active) return;
+    final live = [for (final o in others) if (items[o.id]?.status == ItemStatus.active) items[o.id]!];
+    if (live.isEmpty) return;
+    items[keep.id] = mergedItem(current, live);
+    for (final o in live) {
+      items[o.id] = o.copyWith(status: ItemStatus.deleted);
+    }
     _changed();
   }
 

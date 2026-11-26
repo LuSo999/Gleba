@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../domain/freshness.dart';
+import '../../domain/merge.dart';
 import '../../domain/models.dart';
 import '../../domain/shelf_life.dart';
 import '../labels.dart';
@@ -19,7 +20,7 @@ class UrgentList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l;
     final now = DateTime.now();
-    final sorted = sortByUrgency(items, now);
+    final sorted = groupSameNames(sortByUrgency(items, now));
     if (sorted.isEmpty) return Center(child: Text(l.nothingUrgent));
     final theme = Theme.of(context);
     return ListView.builder(

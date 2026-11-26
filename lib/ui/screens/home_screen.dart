@@ -27,6 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final l = context.l;
     ref.watch(householdUpkeepProvider);
+    ref.watch(itemMergeProvider);
     final households = ref.watch(householdsProvider);
     final active = ref.watch(activeHouseholdProvider);
     final items = ref.watch(itemsProvider).value ?? const [];

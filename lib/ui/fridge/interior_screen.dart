@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app_state.dart';
 import '../../domain/freshness.dart';
+import '../../domain/merge.dart';
 import '../../domain/models.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -69,7 +70,7 @@ class _CompartmentScreenState extends ConsumerState<CompartmentScreen> {
     final l = context.l;
     final now = DateTime.now();
     final all = ref.watch(itemsProvider).value ?? const <PantryItem>[];
-    final items = sortByUrgency(all.where((i) => FridgeView.placeOf(i) == widget.type), now);
+    final items = groupSameNames(sortByUrgency(all.where((i) => FridgeView.placeOf(i) == widget.type), now));
     _selected.removeWhere((id) => !items.any((i) => i.id == id));
     final isFridge = widget.type == LocationType.fridge;
     final shelfItems = isFridge ? items.where((i) => !_drawerCategories.contains(i.categoryId)).toList() : items;
